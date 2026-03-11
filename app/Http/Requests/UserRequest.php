@@ -2,8 +2,9 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Container\Attributes\Log as AttributesLog;
 use Illuminate\Foundation\Http\FormRequest;
-
+use Illuminate\Support\Facades\Log;
 class UserRequest extends FormRequest
 {
     /**
@@ -11,7 +12,7 @@ class UserRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -21,6 +22,7 @@ class UserRequest extends FormRequest
      */
     public function rules(): array
     {
+        Log::info('UserRequest rules method called: ' . $this->route()->getActionMethod());
         return [
             //
         ];

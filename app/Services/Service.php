@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use Illuminate\Http\Response;
+use Illuminate\Http\JsonResponse;
 
 class Service
 {
@@ -11,7 +11,7 @@ class Service
 
     public function generateResponse($data = null, $message = 'OK', $status = 200): void
     {
-        $this->response = Response::json([
+        $this->response = new JsonResponse([
             'data' => $data,
             'message' => $message,
             'status' => $status

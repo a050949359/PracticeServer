@@ -18,6 +18,7 @@ class UserController extends Controller
 
     public function getUser($userId, UserRequest $request): JsonResponse
     {
+        // $request->validate($request->rules());
         return $this->userService->getUserData($userId)->getResponse();
     }
 }
