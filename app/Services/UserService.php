@@ -71,6 +71,7 @@ class UserService extends Service
 
     public function getUserData($userId)
     {
+        dd($userId);
         $user = User::find($userId);
 
         if (!$user) {

@@ -40,4 +40,27 @@ class AuthController extends Controller
             'token' => $token,
         ]);
     }
+
+    public function logout(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+        
+        $tokenId = $user->currentAccessToken()->id;
+        
+        $user->tokens()->where('id', $tokenId)->delete();
+
+        return response()->json([
+            'message' => 'Logged out',
+        ]);
+    }
+
+    public function me(Request $request)
+    {
+        return response()->json($request->user());
+    }
 }
