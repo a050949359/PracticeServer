@@ -9,57 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class UserService extends Service
 {
-    /**
-     * 檢查團隊中是否已有 leader，並處理衝突
-     * 
-     * @param Team $team
-     * @param Role $role
-     * @param User|null $excludeUser 排除檢查的使用者（用於更新現有使用者角色時）
-     * @return array|null 返回 null 表示沒有衝突，返回陣列表示有衝突詳情
-     */
-    protected function checkLeaderConflict($team, $role, $excludeUser = null)
-    {
-        // 如果要分配的角色不是 leader，無需檢查
-        if (!$role->is_leader) {
-            return null;
-        }
-
-        // 如果團隊沒有領導者，無衝突
-        if (!$team->hasLeader()) {
-            return null;
-        }
-
-        setPermissionsTeamId($team);
-        
-        // 取得所有領導者
-        $leaders = $team->getLeaders();
-        $conflictUsers = [];
-        
-        foreach ($leaders as $leader) {
-            // 排除指定的使用者（用於更新場景）
-            if (!$excludeUser || $leader->id !== $excludeUser->id) {
-                // 取得該領導者在此團隊中的 leader 角色資訊
-                $leaderRoles = $leader->roles()->where('team_id', $team->id)->where('is_leader', true)->get();
-                
-                foreach ($leaderRoles as $leaderRole) {
-                    $conflictUsers[] = [
-                        'user_id' => $leader->id,
-                        'user_name' => $leader->name,
-                        'role_id' => $leaderRole->id,
-                        'role_name' => $leaderRole->name,
-                    ];
-                }
-            }
-        }
-
-        return empty($conflictUsers) ? null : [
-            'has_conflict' => true,
-            'existing_leaders' => $conflictUsers,
-            'team_name' => $team->name,
-            'new_role_name' => $role->name,
-        ];
-    }
-
     public function getAllUsers()
     {
         $users = User::all();
@@ -71,7 +20,6 @@ class UserService extends Service
 
     public function getUserData($userId)
     {
-        dd($userId);
         $user = User::find($userId);
 
         if (!$user) {
