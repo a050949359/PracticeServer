@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Services;
+namespace App\Repository\Permission;
 
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Service;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Collection;
 use Spatie\Permission\Models\Role;
 
-class UserService
+class UserRepository
 {
     public function getAllUsers(): Collection
     {
@@ -119,7 +120,7 @@ class UserService
             }
 
             setPermissionsTeamId($team);
-
+        
             $roles = $user->roles()->where('team_id', $teamId)->get();
             foreach ($roles as $role) {
                 $user->removeRole($role);
