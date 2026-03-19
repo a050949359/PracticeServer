@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UserRequest extends FormRequest
+class InvitationRegisterRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,7 +22,15 @@ class UserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'token' => ['required', 'string', 'max:100'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'token.required' => '邀請 token 不可為空。',
         ];
     }
 }

@@ -14,6 +14,15 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertSee('id="app"', false);
+    }
+
+    public function test_the_admin_spa_route_returns_a_successful_response(): void
+    {
+        $response = $this->get('/admin');
+
+        $response->assertStatus(200)
+            ->assertSee('id="app"', false);
     }
 }

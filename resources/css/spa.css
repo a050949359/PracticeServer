@@ -1,0 +1,130 @@
+.spa-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(2, 6, 23, 0.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.spa-topbar-inner {
+    max-width: 72rem;
+    margin: 0 auto;
+    height: 4rem;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.spa-brand {
+    color: #f8fafc;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.spa-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.spa-user-trigger {
+    gap: 0.45rem;
+    cursor: pointer;
+}
+
+.spa-user-name {
+    max-width: 11rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spa-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.6rem;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.875rem;
+    text-decoration: none;
+    border: 1px solid transparent;
+}
+
+.spa-btn-ghost {
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.4);
+}
+
+.spa-btn-primary {
+    color: #082f49;
+    background: #22d3ee;
+    border-color: #22d3ee;
+    font-weight: 600;
+}
+
+.spa-root {
+    min-height: calc(100vh - 4rem);
+    background: #020617;
+    color: #e2e8f0;
+}
+
+.spa-wrap {
+    min-height: 100vh;
+    max-width: 64rem;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    padding: 4rem 1.5rem;
+}
+
+.spa-content {
+    width: 100%;
+}
+
+.spa-panel {
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.spa-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.spa-panel-title {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.spa-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(34, 211, 238, 0.2);
+    color: #a5f3fc;
+    font-size: 0.875rem;
+}
+
+.spa-title {
+    margin-top: 1rem;
+    margin-bottom: 0.75rem;
+    font-size: clamp(2rem, 3vw, 3rem);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+.spa-description {
+    max-width: 42rem;
+    margin: 0;
+    color: #cbd5e1;
+    line-height: 1.7;
+}
+
+.spa-actions-row {
+    margin-top: 1.25rem;
+}

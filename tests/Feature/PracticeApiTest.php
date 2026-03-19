@@ -8,6 +8,20 @@ use Tests\TestCase;
 class PracticeApiTest extends TestCase
 {
     #[Test]
+    public function test_api_preflight_request_returns_cors_headers_for_allowed_origin(): void
+    {
+        $response = $this->options('/api/practice/echo', [], [
+            'Origin' => 'http://localhost:5173',
+            'Access-Control-Request-Method' => 'POST',
+        ]);
+
+        $response
+            ->assertStatus(204)
+            ->assertHeader('Access-Control-Allow-Origin', 'http://localhost:5173')
+            ->assertHeader('Access-Control-Allow-Credentials', 'true');
+    }
+
+    #[Test]
     public function test_echo_api_successfully_returns_message_and_length(): void
     {
         $response = $this->postJson('/api/practice/echo', [
