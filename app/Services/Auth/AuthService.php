@@ -17,7 +17,8 @@ class AuthService
     public function __construct(
         private DatabaseManager $database,
         private RegistrationAssignmentService $registrationAssignmentService,
-        private VerificationEmailService $verificationEmailService,
+        private EmailService $emailService,
+        private PasswordService $passwordService,
     ) {}
 
     public function register(array $validated): JsonResponse
@@ -87,6 +88,7 @@ class AuthService
 
         return response()->json([
             'token' => $token,
+            'is_verified' => $user->hasVerifiedEmail(),
         ]);
     }
 
@@ -119,6 +121,45 @@ class AuthService
             'email_verified_at' => $user->email_verified_at,
             'is_staff' => $this->isStaffUser($user),
         ]);
+    }
+
+    public function updateMe(?User $user, array $validated): JsonResponse
+    {
+        if (! $user) {
+            return response()->json([
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+
+        $user->forceFill([
+            'name' => $validated['name'],
+        ])->save();
+
+        return response()->json([
+            'message' => 'Profile updated',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'email_verified_at' => $user->email_verified_at,
+                'is_staff' => $this->isStaffUser($user),
+            ],
+        ]);
+    }
+
+    public function changePassword(?User $user, array $validated): JsonResponse
+    {
+        return $this->passwordService->changePassword($user, $validated);
+    }
+
+    public function forgotPassword(array $validated): JsonResponse
+    {
+        return $this->passwordService->forgotPassword($validated);
+    }
+
+    public function resetPassword(array $validated): JsonResponse
+    {
+        return $this->passwordService->resetPassword($validated);
     }
 
     public function resendVerificationEmail(Request $request): JsonResponse
@@ -213,7 +254,7 @@ class AuthService
             ], 409);
         }
 
-        $this->verificationEmailService->sendTo($user);
+        $this->emailService->sendVerificationTo($user);
 
         return response()->json([
             'message' => 'Verification email sent',

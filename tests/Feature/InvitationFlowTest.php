@@ -74,15 +74,21 @@ class InvitationFlowTest extends TestCase
     #[Test]
     public function test_can_fetch_invitation_by_token(): void
     {
+        $expiresAt = now()->addDay();
         $invitation = Invitation::query()->create([
             'email' => 'invited@example.com',
             'name' => 'Invited User',
             'context' => 'user_invited_register',
-            'token' => 'token-abc-123',
-            'expires_at' => now()->addDay(),
+            'token' => 'tokenabc123',
+            'expires_at' => $expiresAt,
         ]);
 
-        $response = $this->getJson('/api/auth/invitations/'.$invitation->token);
+        [$expires, $signature] = $this->buildInvitationSignature($invitation->email, $invitation->token, $expiresAt->timestamp);
+
+        $response = $this->getJson('/api/auth/invitations/'.$invitation->token.'?'.http_build_query([
+            'expires' => $expires,
+            'signature' => $signature,
+        ]));
 
         $response
             ->assertOk()
@@ -120,16 +126,21 @@ class InvitationFlowTest extends TestCase
     {
         Mail::fake();
 
-        Invitation::query()->create([
+        $expiresAt = now()->addDay();
+        $invitation = Invitation::query()->create([
             'email' => 'staff-invite@example.com',
             'name' => 'Staff Invite',
             'context' => 'staff_invited_register',
-            'token' => 'token-staff-456',
-            'expires_at' => now()->addDay(),
+            'token' => 'tokenstaff456',
+            'expires_at' => $expiresAt,
         ]);
 
+        [$expires, $signature] = $this->buildInvitationSignature($invitation->email, $invitation->token, $expiresAt->timestamp);
+
         $response = $this->postJson('/api/auth/register/invitation', [
-            'token' => 'token-staff-456',
+            'token' => 'tokenstaff456',
+            'expires' => $expires,
+            'signature' => $signature,
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ]);
@@ -151,7 +162,7 @@ class InvitationFlowTest extends TestCase
             'email' => 'staff-invite@example.com',
         ]);
 
-        $this->assertNotNull(Invitation::query()->where('token', 'token-staff-456')->first()?->accepted_at);
+        $this->assertNotNull(Invitation::query()->where('token', 'tokenstaff456')->first()?->accepted_at);
 
         Mail::assertSent(TypedEmail::class, function (TypedEmail $mail): bool {
             return $mail->type === 'welcome'
@@ -182,5 +193,19 @@ class InvitationFlowTest extends TestCase
         Sanctum::actingAs($user);
 
         return $user;
+    }
+
+    /**
+     * @return array{0:int,1:string}
+     */
+    private function buildInvitationSignature(string $email, string $token, int $expires): array
+    {
+        $signature = hash_hmac(
+            'sha256',
+            implode('|', [$email, $token, $expires]),
+            (string) config('app.key'),
+        );
+
+        return [$expires, $signature];
     }
 }

@@ -33,6 +33,19 @@
     cursor: pointer;
 }
 
+.spa-user-status {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.12rem 0.5rem;
+    background: rgba(251, 191, 36, 0.18);
+    color: #fde68a;
+    border: 1px solid rgba(251, 191, 36, 0.32);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 .spa-user-name {
     max-width: 11rem;
     overflow: hidden;

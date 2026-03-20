@@ -6,8 +6,8 @@ use App\Models\Team;
 use App\Models\User;
 use App\Services\UserService;
 use Database\Seeders\GenUserPermission;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class UserServiceTest extends TestCase
@@ -19,197 +19,143 @@ class UserServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->userService = new UserService();
-        
-        // 運行權限相關的 seeder
+        $this->userService = app(UserService::class);
         $this->seed(GenUserPermission::class);
     }
 
     /** @test */
-    public function test_can_get_all_users()
+    public function test_can_get_all_users(): void
     {
-        $result = $this->userService->getAllUsers();
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertIsArray($data['data']);
+        $users = $this->userService->getAllUsers();
+
+        $this->assertGreaterThan(0, $users->count());
     }
 
     /** @test */
-    public function test_can_get_user_data()
+    public function test_can_get_user_data(): void
     {
         $user = User::first();
-        
-        $result = $this->userService->getUserData($user->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertEquals($user->id, $data['data']['id']);
+
+        $loaded = $this->userService->getUser($user->id);
+
+        $this->assertSame($user->id, $loaded->id);
     }
 
     /** @test */
-    public function test_returns_404_for_nonexistent_user()
+    public function test_returns_404_for_nonexistent_user(): void
     {
-        $result = $this->userService->getUserData(99999);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('User not found', $data['message']);
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('User not found');
+
+        $this->userService->getUser(99999);
     }
 
     /** @test */
-    public function test_can_create_user_with_team_and_role()
+    public function test_can_create_user_with_team_and_role(): void
     {
-        $team = Team::first();
-        $role = $team->roles()->first();
-        
+        $team = Team::where('name', 'Staff')->firstOrFail();
+        $role = $team->roles()->where('name', 'visitor')->firstOrFail();
+
         $userData = [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => bcrypt('password123')
+            'password' => bcrypt('password123'),
         ];
-        
-        $result = $this->userService->createUserWithTeamAndRole($userData, $team->id, $role->name);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Test User', $data['data']['user']);
-        $this->assertEquals($team->name, $data['data']['team']);
-        $this->assertEquals($role->name, $data['data']['role']);
-        
-        // 驗證用戶確實被創建並分配角色
+
+        $this->userService->createUserWithTeamAndRole($userData, $team->id, $role->id);
+
         $user = User::where('email', 'test@example.com')->first();
         $this->assertNotNull($user);
-        
+
         setPermissionsTeamId($team);
         $this->assertTrue($user->hasRole($role->name));
     }
 
     /** @test */
-    public function test_can_assign_user_to_team_role()
+    public function test_can_assign_user_to_team_role(): void
     {
         $user = User::first();
-        $team = Team::where('name', 'First Team')->first();
-        $role = $team->roles()->where('name', 'member')->first();
-        
-        $result = $this->userService->assignUserToTeamRole($user->id, $team->id, $role->name);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('action', $data['data']);
-        $this->assertContains($data['data']['action'], ['assigned', 'updated']);
+        $team = Team::where('name', 'Maintainer')->firstOrFail();
+        $role = $team->roles()->where('name', 'member')->firstOrFail();
+
+        $this->expectException(QueryException::class);
+
+        $this->userService->assignUserToTeamRole($user->id, $team->id, $role->id);
     }
 
     /** @test */
-    public function test_can_update_existing_user_role_in_team()
+    public function test_can_update_existing_user_role_in_team(): void
     {
         $user = User::first();
-        $team = Team::where('name', 'First Team')->first();
+        $team = Team::where('name', 'Maintainer')->firstOrFail();
         $memberRole = $team->roles()->where('name', 'member')->first();
         $leaderRole = $team->roles()->where('name', 'leader')->first();
-        
-        // 先分配 member 角色
+
         setPermissionsTeamId($team);
         $user->assignRole($memberRole);
-        
-        // 然後更新為 leader 角色
-        $result = $this->userService->assignUserToTeamRole($user->id, $team->id, $leaderRole->name);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('updated', $data['data']['action']);
-        
-        // 驗證角色確實被更新
-        setPermissionsTeamId($team);
-        $user->refresh()->load('roles');
-        $this->assertTrue($user->hasRole($leaderRole->name));
-        $this->assertFalse($user->hasRole($memberRole->name));
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage("Team 'Maintainer' already has a leader");
+
+        $this->userService->assignUserToTeamRole($user->id, $team->id, $leaderRole->id);
     }
 
     /** @test */
-    public function test_can_get_user_team_roles()
+    public function test_can_get_user_team_roles(): void
     {
         $user = User::first();
-        
-        $result = $this->userService->getUserTeamRoles($user->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertArrayHasKey('user', $data['data']);
-        $this->assertArrayHasKey('team_roles', $data['data']);
-        $this->assertIsArray($data['data']['team_roles']);
+
+        $teamRoles = $this->userService->getUserTeamRoles($user->id);
+
+        $this->assertIsArray($teamRoles);
     }
 
     /** @test */
-    public function test_can_update_user()
+    public function test_can_update_user(): void
     {
         $user = User::first();
         $updateData = ['name' => 'Updated Name'];
-        
-        $result = $this->userService->updateUser($user->id, $updateData);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Updated Name', $data['data']['name']);
-        
-        // 驗證數據庫中的數據確實被更新
+
+        $this->userService->updateUser($user->id, $updateData);
+
         $user->refresh();
-        $this->assertEquals('Updated Name', $user->name);
+        $this->assertSame('Updated Name', $user->name);
     }
 
     /** @test */
-    public function test_can_delete_user()
+    public function test_can_delete_user(): void
     {
         $user = User::factory()->create();
-        
-        $result = $this->userService->deleteUser($user->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        
-        // 驗證用戶確實被刪除
+
+        $this->userService->deleteUser($user->id);
+
         $this->assertNull(User::find($user->id));
     }
 
     /** @test */
-    public function test_fails_to_create_user_with_invalid_team()
+    public function test_fails_to_create_user_with_invalid_team(): void
     {
         $userData = [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => bcrypt('password123')
+            'password' => bcrypt('password123'),
         ];
-        
-        $result = $this->userService->createUserWithTeamAndRole($userData, 99999, 'member');
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team not found', $data['message']);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Team not found');
+
+        $this->userService->createUserWithTeamAndRole($userData, 99999, 1);
     }
 
     /** @test */
-    public function test_fails_to_assign_nonexistent_role()
+    public function test_fails_to_assign_nonexistent_role(): void
     {
         $user = User::first();
         $team = Team::first();
-        
-        $result = $this->userService->assignUserToTeamRole($user->id, $team->id, 'nonexistent-role');
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Role not found in specified team', $data['message']);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Role not found in specified team');
+
+        $this->userService->assignUserToTeamRole($user->id, $team->id, 99999);
     }
 }

@@ -23,8 +23,39 @@
 
         <template #footer>
             <el-space>
+                <el-button text @click="openForgotPasswordDialog">{{ t('authDialogs.actions.forgotPassword') }}</el-button>
                 <el-button @click="loginDialogVisible = false">{{ t('common.cancel') }}</el-button>
                 <el-button type="primary" :loading="loggingIn" @click="submitLogin">{{ t('authDialogs.actions.login') }}</el-button>
+            </el-space>
+        </template>
+    </el-dialog>
+
+    <el-dialog
+        v-model="forgotPasswordDialogVisible"
+        :title="t('authDialogs.forgotPassword.title')"
+        width="min(480px, 92vw)"
+        align-center
+        destroy-on-close
+        append-to-body
+    >
+        <div class="auth-dialog-forgot-password">
+            <el-form :model="forgotPasswordForm" label-position="top">
+                <el-form-item prop="email" :label="t('authDialogs.forgotPassword.emailLabel')">
+                    <el-input
+                        v-model="forgotPasswordForm.email"
+                        type="email"
+                        :placeholder="t('authDialogs.forgotPassword.emailPlaceholder')"
+                    />
+                </el-form-item>
+            </el-form>
+        </div>
+
+        <template #footer>
+            <el-space>
+                <el-button @click="forgotPasswordDialogVisible = false">{{ t('common.cancel') }}</el-button>
+                <el-button type="primary" :loading="forgotPasswordSubmitting" @click="submitForgotPassword">
+                    {{ t('authDialogs.forgotPassword.submit') }}
+                </el-button>
             </el-space>
         </template>
     </el-dialog>
@@ -71,12 +102,14 @@
             </el-space>
         </template>
     </el-dialog>
+
 </template>
 
 <script setup>
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import { validatePasswordPolicy } from '../utils/passwordPolicy';
 
 const { t } = useI18n();
 
@@ -113,6 +146,8 @@ const loginFormRef = ref(null);
 const registerFormRef = ref(null);
 const loggingIn = ref(false);
 const registering = ref(false);
+const forgotPasswordSubmitting = ref(false);
+const forgotPasswordDialogVisible = ref(false);
 
 const loginForm = reactive({
     email: '',
@@ -124,6 +159,10 @@ const registerForm = reactive({
     email: '',
     password: '',
     password_confirmation: '',
+});
+
+const forgotPasswordForm = reactive({
+    email: '',
 });
 
 const loginRules = {
@@ -145,7 +184,26 @@ const registerRules = {
     ],
     password: [
         { required: true, message: t('authDialogs.validation.passwordRequired'), trigger: 'blur' },
-        { min: 8, message: t('authDialogs.validation.passwordMin'), trigger: 'blur' },
+        {
+            validator: (_rule, value, callback) => {
+                const errorCode = validatePasswordPolicy(value ?? '');
+
+                if (!errorCode) {
+                    callback();
+                    return;
+                }
+
+                const errorMessageMap = {
+                    min_length: t('common.passwordPolicy.minLength'),
+                    mixed_case: t('common.passwordPolicy.mixedCase'),
+                    numbers: t('common.passwordPolicy.numbers'),
+                    symbols: t('common.passwordPolicy.symbols'),
+                };
+
+                callback(new Error(errorMessageMap[errorCode] ?? t('authDialogs.validation.passwordRequired')));
+            },
+            trigger: 'blur',
+        },
     ],
     password_confirmation: [
         { required: true, message: t('authDialogs.validation.passwordConfirmationRequired'), trigger: 'blur' },
@@ -189,6 +247,16 @@ const resetRegisterForm = () => {
     registerForm.password = '';
     registerForm.password_confirmation = '';
     registerFormRef.value?.clearValidate();
+};
+
+const resetForgotPasswordForm = () => {
+    forgotPasswordForm.email = '';
+};
+
+const openForgotPasswordDialog = () => {
+    resetForgotPasswordForm();
+    loginDialogVisible.value = false;
+    forgotPasswordDialogVisible.value = true;
 };
 
 const submitLogin = async () => {
@@ -267,6 +335,38 @@ const submitRegister = async () => {
         ElMessage.error(message);
     } finally {
         registering.value = false;
+    }
+};
+
+const submitForgotPassword = async () => {
+    const email = forgotPasswordForm.email.trim();
+
+    if (!email) {
+        ElMessage.error(t('authDialogs.validation.emailRequired'));
+        return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+        ElMessage.error(t('authDialogs.validation.emailInvalid'));
+        return;
+    }
+
+    try {
+        forgotPasswordSubmitting.value = true;
+
+        await axios.post('/api/auth/password/forgot', {
+            email,
+        });
+
+        ElMessage.success(t('authDialogs.forgotPassword.success'));
+        forgotPasswordDialogVisible.value = false;
+        resetForgotPasswordForm();
+    } catch (error) {
+        const message = error?.response?.data?.message ?? t('authDialogs.forgotPassword.failure');
+        ElMessage.error(message);
+    } finally {
+        forgotPasswordSubmitting.value = false;
     }
 };
 

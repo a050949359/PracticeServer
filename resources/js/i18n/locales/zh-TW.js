@@ -1,6 +1,17 @@
 export default {
     common: {
         cancel: '取消',
+        passwordPolicy: {
+            minLength: '密碼至少 12 碼',
+            mixedCase: '密碼需同時包含英文大小寫',
+            numbers: '密碼需包含數字',
+            symbols: '密碼需包含符號',
+        },
+    },
+    navbar: {
+        userStatus: {
+            unverified: '未驗證',
+        },
     },
     inviteDialog: {
         title: '發送註冊邀請',
@@ -34,13 +45,14 @@ export default {
             namePlaceholder: '請輸入名稱',
             passwordLabel: '密碼',
             passwordPlaceholder: '請輸入密碼',
-            passwordMinPlaceholder: '至少 8 碼',
+            passwordMinPlaceholder: '至少 12 碼，需含大小寫、數字與符號',
             passwordConfirmationLabel: '確認密碼',
             passwordConfirmationPlaceholder: '請再次輸入密碼',
         },
         actions: {
             login: '登入',
             register: '建立帳號',
+            forgotPassword: '忘記密碼',
         },
         validation: {
             nameRequired: '請輸入名稱',
@@ -48,7 +60,6 @@ export default {
             emailRequired: '請輸入 Email',
             emailInvalid: 'Email 格式不正確',
             passwordRequired: '請輸入密碼',
-            passwordMin: '密碼至少 8 碼',
             passwordConfirmationRequired: '請輸入確認密碼',
             passwordMismatch: '兩次密碼不一致',
         },
@@ -60,12 +71,48 @@ export default {
             registerSuccess: '註冊成功，請使用新帳號登入',
             registerFailure: '註冊失敗，請稍後再試',
         },
+        forgotPassword: {
+            title: '忘記密碼',
+            emailLabel: '帳號 Email',
+            emailPlaceholder: '請輸入帳號 Email',
+            submit: '寄送重設信',
+            success: '已送出重設密碼信件，請到信箱確認。',
+            failure: '寄送失敗，請稍後再試。',
+        },
     },
     profileDialog: {
         title: '個人資料',
         fields: {
             name: '名稱',
-            id: 'ID',
+            email: 'Email',
+            verification: 'Email 驗證狀態',
+            currentPassword: '目前密碼',
+            newPassword: '新密碼',
+            passwordConfirmation: '確認新密碼',
+        },
+        verification: {
+            verified: '已驗證',
+            unverified: '未驗證',
+        },
+        placeholders: {
+            name: '請輸入名稱',
+            currentPassword: '請輸入目前密碼',
+            newPassword: '至少 12 碼，需含大小寫、數字與符號',
+            passwordConfirmation: '請再次輸入新密碼',
+        },
+        actions: {
+            save: '儲存變更',
+            changePassword: '更改密碼',
+        },
+        messages: {
+            updateSuccess: '個人資料已更新',
+            updateFailure: '更新失敗，請稍後再試',
+            passwordUpdateSuccess: '密碼已更新',
+            passwordUpdateFailure: '密碼更新失敗，請稍後再試',
+            currentPasswordIncorrect: '目前密碼錯誤',
+            passwordCooldown: '密碼更改過於頻繁，請稍後再試',
+            passwordHistoryViolation: '新密碼不可與近期使用過的密碼相同',
+            passwordReused: '新密碼不可與目前密碼相同',
         },
     },
     register: {
@@ -77,6 +124,10 @@ export default {
             invitationTitle: '完成邀請註冊',
             verificationTag: 'Email Verification',
             verificationTitle: 'Email 驗證結果',
+            forgotPasswordTag: 'Forgot Password',
+            forgotPasswordTitle: '忘記密碼',
+            resetPasswordTag: 'Reset Password',
+            resetPasswordTitle: '重設密碼',
         },
         verification: {
             verifiedAt: '驗證時間：{value}',
@@ -125,7 +176,7 @@ export default {
             invitedName: '邀請名稱：{name}',
             unknownName: '未提供',
             password: '密碼',
-            passwordPlaceholder: '至少 8 碼',
+            passwordPlaceholder: '至少 12 碼，需含大小寫、數字與符號',
             passwordConfirmation: '確認密碼',
             passwordConfirmationPlaceholder: '請再次輸入密碼',
             submit: '完成註冊',
@@ -133,7 +184,33 @@ export default {
             failure: '完成註冊失敗，請稍後再試。',
             validation: {
                 passwordRequired: '請輸入密碼',
-                passwordMin: '密碼至少 8 碼',
+                passwordConfirmationRequired: '請輸入確認密碼',
+                passwordMismatch: '兩次密碼不一致',
+            },
+        },
+        forgotPassword: {
+            emailLabel: '帳號 Email',
+            emailPlaceholder: '請輸入帳號 Email',
+            submit: '寄送重設信',
+            success: '已送出重設密碼信件，請到信箱確認。',
+            failure: '寄送失敗，請稍後再試。',
+            validation: {
+                emailRequired: '請輸入 Email',
+                emailInvalid: 'Email 格式不正確',
+            },
+        },
+        resetPassword: {
+            missingParams: '缺少重設參數，請使用信件中的完整連結。',
+            emailLabel: '帳號 Email',
+            passwordLabel: '新密碼',
+            passwordPlaceholder: '至少 12 碼，需含大小寫、數字與符號',
+            passwordConfirmationLabel: '確認新密碼',
+            passwordConfirmationPlaceholder: '請再次輸入新密碼',
+            submit: '重設密碼',
+            success: '密碼已重設完成，請重新登入。',
+            failure: '重設密碼失敗，請稍後再試。',
+            validation: {
+                passwordRequired: '請輸入新密碼',
                 passwordConfirmationRequired: '請輸入確認密碼',
                 passwordMismatch: '兩次密碼不一致',
             },

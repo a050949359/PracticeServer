@@ -47,7 +47,7 @@ class AuthRegisterContextTest extends TestCase
         Mail::assertSent(TypedEmail::class, function (TypedEmail $mail): bool {
             return $mail->type === 'welcome'
                 && $mail->recipientName === 'Public User'
-                && str_contains((string) ($mail->data['action_url'] ?? ''), '/api/auth/verify-email/')
+                && str_contains((string) ($mail->data['action_url'] ?? ''), '/verify-email/')
                 && $mail->envelope()->subject === __('mail.welcome.subject', ['app' => config('app.name')]);
         });
     }

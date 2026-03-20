@@ -6,6 +6,7 @@
                 <template v-if="authenticated">
                     <el-dropdown trigger="click" @command="handleMenuAction">
                         <button class="spa-btn spa-btn-ghost spa-user-trigger" type="button">
+                            <span v-if="userStatusLabel" class="spa-user-status">{{ userStatusLabel }}</span>
                             <span class="spa-user-name">{{ userLabel }}</span>
                             <span aria-hidden="true">▾</span>
                         </button>
@@ -71,6 +72,10 @@ defineProps({
     userLabel: {
         type: String,
         default: '會員',
+    },
+    userStatusLabel: {
+        type: String,
+        default: '',
     },
     menuItems: {
         type: Array,

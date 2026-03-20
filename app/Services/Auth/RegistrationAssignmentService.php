@@ -9,7 +9,7 @@ use Spatie\Permission\Models\Role;
 class RegistrationAssignmentService
 {
     public function __construct(
-        private VerificationEmailService $verificationEmailService,
+        private EmailService $emailService,
     ) {}
 
     /**
@@ -37,7 +37,7 @@ class RegistrationAssignmentService
         setPermissionsTeamId($team->id);
         $user->assignRole($role);
 
-        $this->verificationEmailService->sendTo($user);
+        $this->emailService->sendVerificationTo($user);
 
         return [$user, $team, $role];
     }

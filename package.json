@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "build:fast": "vite build --minify=false",
         "dev": "vite"
     },
     "devDependencies": {

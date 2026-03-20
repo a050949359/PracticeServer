@@ -23,6 +23,8 @@ class InvitationRegisterRequest extends FormRequest
     {
         return [
             'token' => ['required', 'string', 'max:100'],
+            'expires' => ['required', 'integer'],
+            'signature' => ['required', 'string'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
     }

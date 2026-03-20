@@ -19,6 +19,7 @@ class AuthLoginAudienceTest extends TestCase
         $user = User::factory()->create([
             'email' => 'public-login@example.com',
             'password' => bcrypt('password123'),
+            'email_verified_at' => null,
         ]);
 
         $response = $this->postJson('/api/auth/login', [
@@ -29,6 +30,9 @@ class AuthLoginAudienceTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJson([
+                'is_verified' => false,
+            ])
             ->assertJsonStructure(['token']);
     }
 
@@ -75,6 +79,9 @@ class AuthLoginAudienceTest extends TestCase
     public function test_staff_user_can_login_with_admin_audience(): void
     {
         $user = $this->createStaffUser('staff-admin-ok@example.com');
+        $user->forceFill([
+            'email_verified_at' => now(),
+        ])->save();
 
         $response = $this->postJson('/api/auth/login', [
             'email' => $user->email,
@@ -84,6 +91,9 @@ class AuthLoginAudienceTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertJson([
+                'is_verified' => true,
+            ])
             ->assertJsonStructure(['token']);
     }
 

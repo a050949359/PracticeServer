@@ -45,13 +45,15 @@ function resolveLocale() {
 
 export function createAppI18n() {
     const locale = resolveLocale();
+    const fallbackMeta = document.querySelector('meta[name="app-fallback-locale"]')?.content;
+    const fallbackLocale = normalizeLocale(fallbackMeta);
 
     document.documentElement.lang = locale;
 
     return createI18n({
         legacy: false,
         locale,
-        fallbackLocale: 'zh-TW',
+        fallbackLocale,
         messages: {
             'zh-TW': zhTW,
             en,

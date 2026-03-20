@@ -23,6 +23,10 @@ export function useAuthSession() {
         return Boolean(currentUser.value?.is_staff);
     });
 
+    const isEmailVerified = computed(() => {
+        return Boolean(currentUser.value?.email_verified_at);
+    });
+
     const userLabel = computed(() => {
         return currentUser.value?.name ?? currentUser.value?.email ?? '會員';
     });
@@ -75,6 +79,22 @@ export function useAuthSession() {
         await loadCurrentUser();
     };
 
+    const updateProfile = async (payload) => {
+        const response = await axios.patch('/api/auth/me', payload, {
+            headers: buildAuthHeaders(),
+        });
+
+        currentUser.value = response.data.user;
+
+        return currentUser.value;
+    };
+
+    const changePassword = async (payload) => {
+        await axios.post('/api/auth/password/change', payload, {
+            headers: buildAuthHeaders(),
+        });
+    };
+
     const logout = async () => {
         try {
             await axios.post(
@@ -107,9 +127,13 @@ export function useAuthSession() {
         currentUser,
         isAuthenticated,
         isStaff,
+        isEmailVerified,
         userLabel,
         buildAuthHeaders,
         applyLoginToken,
+        updateProfile,
+        changePassword,
+        loadCurrentUser,
         logout,
         restoreSession,
     };

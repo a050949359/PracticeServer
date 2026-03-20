@@ -94,6 +94,20 @@ class TypedEmail extends Mailable
                     'buttonTextColor' => '#ffffff',
                 ],
             ],
+            'password_reset' => [
+                'subject' => __('mail.password_reset.subject', ['app' => $appName]),
+                'view' => 'emails.templates.typed_email',
+                'with' => [
+                    'subject' => __('mail.password_reset.subject', ['app' => $appName]),
+                    'heading' => __('mail.password_reset.heading', ['name' => $recipientName]),
+                    'intro' => $this->data['message'] ?? __('mail.password_reset.intro'),
+                    'actionLabel' => $this->data['action_label'] ?? __('mail.password_reset.action_label'),
+                    'actionUrl' => $this->data['action_url'] ?? null,
+                    'actionHint' => $this->data['action_hint'] ?? __('mail.common.action_hint'),
+                    'buttonBackground' => '#f59e0b',
+                    'buttonTextColor' => '#1f2937',
+                ],
+            ],
             default => throw new InvalidArgumentException("Unsupported email type [{$this->type}]"),
         };
     }

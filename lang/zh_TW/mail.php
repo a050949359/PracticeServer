@@ -17,4 +17,10 @@ return [
         'intro' => '請透過下方連結完成註冊。',
         'action_label' => '完成註冊',
     ],
+    'password_reset' => [
+        'subject' => ':app 重設密碼通知',
+        'heading' => ':name，你好',
+        'intro' => '我們收到了你的重設密碼申請，請點擊下方按鈕繼續。',
+        'action_label' => '重設密碼',
+    ],
 ];

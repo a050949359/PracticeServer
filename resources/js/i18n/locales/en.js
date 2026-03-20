@@ -1,6 +1,17 @@
 export default {
     common: {
         cancel: 'Cancel',
+        passwordPolicy: {
+            minLength: 'Password must be at least 12 characters',
+            mixedCase: 'Password must include both uppercase and lowercase letters',
+            numbers: 'Password must include at least one number',
+            symbols: 'Password must include at least one symbol',
+        },
+    },
+    navbar: {
+        userStatus: {
+            unverified: 'Unverified',
+        },
     },
     inviteDialog: {
         title: 'Send Registration Invitation',
@@ -34,13 +45,14 @@ export default {
             namePlaceholder: 'Please enter your name',
             passwordLabel: 'Password',
             passwordPlaceholder: 'Please enter your password',
-            passwordMinPlaceholder: 'At least 8 characters',
+            passwordMinPlaceholder: 'At least 12 chars with upper/lowercase, number, and symbol',
             passwordConfirmationLabel: 'Confirm Password',
             passwordConfirmationPlaceholder: 'Enter your password again',
         },
         actions: {
             login: 'Sign In',
             register: 'Create Account',
+            forgotPassword: 'Forgot Password',
         },
         validation: {
             nameRequired: 'Please enter your name',
@@ -48,7 +60,6 @@ export default {
             emailRequired: 'Please enter an email',
             emailInvalid: 'Invalid email format',
             passwordRequired: 'Please enter a password',
-            passwordMin: 'Password must be at least 8 characters',
             passwordConfirmationRequired: 'Please confirm your password',
             passwordMismatch: 'Passwords do not match',
         },
@@ -60,12 +71,48 @@ export default {
             registerSuccess: 'Registration successful. Please sign in with your new account.',
             registerFailure: 'Registration failed. Please try again later.',
         },
+        forgotPassword: {
+            title: 'Forgot Password',
+            emailLabel: 'Account Email',
+            emailPlaceholder: 'Enter your account email',
+            submit: 'Send Reset Link',
+            success: 'Password reset email sent. Please check your inbox.',
+            failure: 'Failed to send reset email. Please try again later.',
+        },
     },
     profileDialog: {
         title: 'Profile',
         fields: {
             name: 'Name',
-            id: 'ID',
+            email: 'Email',
+            verification: 'Email Verification Status',
+            currentPassword: 'Current Password',
+            newPassword: 'New Password',
+            passwordConfirmation: 'Confirm New Password',
+        },
+        verification: {
+            verified: 'Verified',
+            unverified: 'Unverified',
+        },
+        placeholders: {
+            name: 'Please enter your name',
+            currentPassword: 'Enter your current password',
+            newPassword: 'At least 12 chars with upper/lowercase, number, and symbol',
+            passwordConfirmation: 'Enter your new password again',
+        },
+        actions: {
+            save: 'Save Changes',
+            changePassword: 'Change Password',
+        },
+        messages: {
+            updateSuccess: 'Profile updated',
+            updateFailure: 'Failed to update profile. Please try again later.',
+            passwordUpdateSuccess: 'Password updated',
+            passwordUpdateFailure: 'Failed to update password. Please try again later.',
+            currentPasswordIncorrect: 'Current password is incorrect',
+            passwordCooldown: 'Password changes are too frequent. Please try again later.',
+            passwordHistoryViolation: 'New password cannot match recently used passwords',
+            passwordReused: 'New password must be different from current password',
         },
     },
     register: {
@@ -77,6 +124,10 @@ export default {
             invitationTitle: 'Complete Invitation Registration',
             verificationTag: 'Email Verification',
             verificationTitle: 'Email Verification Result',
+            forgotPasswordTag: 'Forgot Password',
+            forgotPasswordTitle: 'Forgot Password',
+            resetPasswordTag: 'Reset Password',
+            resetPasswordTitle: 'Reset Password',
         },
         verification: {
             verifiedAt: 'Verified at: {value}',
@@ -125,7 +176,7 @@ export default {
             invitedName: 'Invitation name: {name}',
             unknownName: 'Not provided',
             password: 'Password',
-            passwordPlaceholder: 'At least 8 characters',
+            passwordPlaceholder: 'At least 12 chars with upper/lowercase, number, and symbol',
             passwordConfirmation: 'Confirm password',
             passwordConfirmationPlaceholder: 'Enter the password again',
             submit: 'Complete registration',
@@ -133,7 +184,33 @@ export default {
             failure: 'Registration failed. Please try again later.',
             validation: {
                 passwordRequired: 'Please enter a password',
-                passwordMin: 'Password must be at least 8 characters',
+                passwordConfirmationRequired: 'Please confirm your password',
+                passwordMismatch: 'Passwords do not match',
+            },
+        },
+        forgotPassword: {
+            emailLabel: 'Account Email',
+            emailPlaceholder: 'Enter your account email',
+            submit: 'Send Reset Link',
+            success: 'Password reset email sent. Please check your inbox.',
+            failure: 'Failed to send reset email. Please try again later.',
+            validation: {
+                emailRequired: 'Please enter an email',
+                emailInvalid: 'Invalid email format',
+            },
+        },
+        resetPassword: {
+            missingParams: 'Missing reset parameters. Please use the full link from the email.',
+            emailLabel: 'Account Email',
+            passwordLabel: 'New Password',
+            passwordPlaceholder: 'At least 12 chars with upper/lowercase, number, and symbol',
+            passwordConfirmationLabel: 'Confirm New Password',
+            passwordConfirmationPlaceholder: 'Enter the new password again',
+            submit: 'Reset Password',
+            success: 'Password has been reset. Please sign in again.',
+            failure: 'Failed to reset password. Please try again later.',
+            validation: {
+                passwordRequired: 'Please enter a new password',
                 passwordConfirmationRequired: 'Please confirm your password',
                 passwordMismatch: 'Passwords do not match',
             },

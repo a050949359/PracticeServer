@@ -17,4 +17,10 @@ return [
         'intro' => 'Please use the link below to complete your registration.',
         'action_label' => 'Complete Registration',
     ],
+    'password_reset' => [
+        'subject' => ':app Password Reset',
+        'heading' => 'Hello, :name',
+        'intro' => 'We received a request to reset your password. Use the button below to continue.',
+        'action_label' => 'Reset Password',
+    ],
 ];

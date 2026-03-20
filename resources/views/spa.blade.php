@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="app-locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
+        <meta name="app-fallback-locale" content="{{ str_replace('_', '-', config('app.fallback_locale')) }}">
         <title>{{ config('app.name', 'Laravel') }}</title>
         @php
             $hasViteAssets = file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot'));

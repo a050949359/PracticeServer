@@ -39,6 +39,53 @@
                         </el-space>
                     </template>
 
+                    <template v-else-if="isResetPasswordMode">
+                        <el-alert
+                            v-if="!resetPasswordParamsReady"
+                            type="error"
+                            :closable="false"
+                            :title="t('register.resetPassword.missingParams')"
+                            show-icon
+                        />
+
+                        <el-form
+                            v-else
+                            ref="resetPasswordFormRef"
+                            :model="resetPasswordForm"
+                            :rules="resetPasswordRules"
+                            label-position="top"
+                        >
+                            <el-form-item :label="t('register.resetPassword.emailLabel')">
+                                <el-input :model-value="resetPasswordEmail" disabled />
+                            </el-form-item>
+
+                            <el-form-item :label="t('register.resetPassword.passwordLabel')" prop="password">
+                                <el-input
+                                    v-model="resetPasswordForm.password"
+                                    type="password"
+                                    show-password
+                                    :placeholder="t('register.resetPassword.passwordPlaceholder')"
+                                />
+                            </el-form-item>
+
+                            <el-form-item :label="t('register.resetPassword.passwordConfirmationLabel')" prop="password_confirmation">
+                                <el-input
+                                    v-model="resetPasswordForm.password_confirmation"
+                                    type="password"
+                                    show-password
+                                    :placeholder="t('register.resetPassword.passwordConfirmationPlaceholder')"
+                                />
+                            </el-form-item>
+
+                            <el-space>
+                                <el-button @click="goHome">{{ t('register.nav.home') }}</el-button>
+                                <el-button type="primary" :loading="resetPasswordSubmitting" @click="submitResetPassword">
+                                    {{ t('register.resetPassword.submit') }}
+                                </el-button>
+                            </el-space>
+                        </el-form>
+                    </template>
+
                     <el-skeleton v-else-if="invitationLoading" :rows="4" animated />
 
                     <el-alert
@@ -106,6 +153,7 @@ import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
 import AppNavbar from '../../components/AppNavbar.vue';
 import { useAuthSession } from '../../composables/useAuthSession';
+import { validatePasswordPolicy } from '../../utils/passwordPolicy';
 
 const { applyLoginToken } = useAuthSession();
 const { t, te, locale } = useI18n();
@@ -120,12 +168,15 @@ const topActions = computed(() => [
 ]);
 
 const invitationFormRef = ref(null);
+const resetPasswordFormRef = ref(null);
 const invitationLoading = ref(false);
 const invitationSubmitting = ref(false);
+const resetPasswordSubmitting = ref(false);
 const invitationError = ref('');
 const invitationInfo = ref(null);
 
 const isVerificationResultMode = computed(() => window.location.pathname.startsWith('/register/verify-email'));
+const isResetPasswordMode = computed(() => window.location.pathname.startsWith('/register/reset-password'));
 
 const verificationResult = computed(() => {
     const query = new URLSearchParams(window.location.search);
@@ -155,7 +206,17 @@ const verificationAlertType = computed(() => {
     return 'info';
 });
 
-const panelTagLabel = computed(() => (isVerificationResultMode.value ? t('register.panel.verificationTag') : t('register.panel.invitationTag')));
+const panelTagLabel = computed(() => {
+    if (isVerificationResultMode.value) {
+        return t('register.panel.verificationTag');
+    }
+
+    if (isResetPasswordMode.value) {
+        return t('register.panel.resetPasswordTag');
+    }
+
+    return t('register.panel.invitationTag');
+});
 
 const panelTagType = computed(() => {
     if (!isVerificationResultMode.value) {
@@ -165,17 +226,84 @@ const panelTagType = computed(() => {
     return verificationAlertType.value === 'error' ? 'danger' : verificationAlertType.value;
 });
 
-const panelTitle = computed(() => (isVerificationResultMode.value ? t('register.panel.verificationTitle') : t('register.panel.invitationTitle')));
+const panelTitle = computed(() => {
+    if (isVerificationResultMode.value) {
+        return t('register.panel.verificationTitle');
+    }
+
+    if (isResetPasswordMode.value) {
+        return t('register.panel.resetPasswordTitle');
+    }
+
+    return t('register.panel.invitationTitle');
+});
 
 const invitationForm = reactive({
     password: '',
     password_confirmation: '',
 });
 
+const resetPasswordForm = reactive({
+    password: '',
+    password_confirmation: '',
+});
+
+const resetPasswordToken = computed(() => {
+    const query = new URLSearchParams(window.location.search);
+
+    return query.get('token') ?? '';
+});
+
+const resetPasswordEmail = computed(() => {
+    const query = new URLSearchParams(window.location.search);
+
+    return query.get('email') ?? '';
+});
+
+const resetPasswordExpires = computed(() => {
+    const query = new URLSearchParams(window.location.search);
+
+    return query.get('expires') ?? '';
+});
+
+const resetPasswordSignature = computed(() => {
+    const query = new URLSearchParams(window.location.search);
+
+    return query.get('signature') ?? '';
+});
+
+const resetPasswordParamsReady = computed(() => {
+    return Boolean(
+        resetPasswordToken.value
+            && resetPasswordEmail.value
+            && resetPasswordExpires.value
+            && resetPasswordSignature.value,
+    );
+});
+
 const invitationRules = computed(() => ({
     password: [
         { required: true, message: t('register.invitation.validation.passwordRequired'), trigger: 'blur' },
-        { min: 8, message: t('register.invitation.validation.passwordMin'), trigger: 'blur' },
+        {
+            validator: (_rule, value, callback) => {
+                const errorCode = validatePasswordPolicy(value ?? '');
+
+                if (!errorCode) {
+                    callback();
+                    return;
+                }
+
+                const errorMessageMap = {
+                    min_length: t('common.passwordPolicy.minLength'),
+                    mixed_case: t('common.passwordPolicy.mixedCase'),
+                    numbers: t('common.passwordPolicy.numbers'),
+                    symbols: t('common.passwordPolicy.symbols'),
+                };
+
+                callback(new Error(errorMessageMap[errorCode] ?? t('register.invitation.validation.passwordRequired')));
+            },
+            trigger: 'blur',
+        },
     ],
     password_confirmation: [
         { required: true, message: t('register.invitation.validation.passwordConfirmationRequired'), trigger: 'blur' },
@@ -193,10 +321,62 @@ const invitationRules = computed(() => ({
     ],
 }));
 
+const resetPasswordRules = computed(() => ({
+    password: [
+        { required: true, message: t('register.resetPassword.validation.passwordRequired'), trigger: 'blur' },
+        {
+            validator: (_rule, value, callback) => {
+                const errorCode = validatePasswordPolicy(value ?? '');
+
+                if (!errorCode) {
+                    callback();
+                    return;
+                }
+
+                const errorMessageMap = {
+                    min_length: t('common.passwordPolicy.minLength'),
+                    mixed_case: t('common.passwordPolicy.mixedCase'),
+                    numbers: t('common.passwordPolicy.numbers'),
+                    symbols: t('common.passwordPolicy.symbols'),
+                };
+
+                callback(new Error(errorMessageMap[errorCode] ?? t('register.resetPassword.validation.passwordRequired')));
+            },
+            trigger: 'blur',
+        },
+    ],
+    password_confirmation: [
+        { required: true, message: t('register.resetPassword.validation.passwordConfirmationRequired'), trigger: 'blur' },
+        {
+            validator: (_rule, value, callback) => {
+                if (value !== resetPasswordForm.password) {
+                    callback(new Error(t('register.resetPassword.validation.passwordMismatch')));
+                    return;
+                }
+
+                callback();
+            },
+            trigger: 'blur',
+        },
+    ],
+}));
+
 const invitationToken = computed(() => {
     const query = new URLSearchParams(window.location.search);
 
     return query.get('token') ?? '';
+});
+
+const invitationExpires = computed(() => {
+    const query = new URLSearchParams(window.location.search);
+
+    return query.get('expires') ?? '';
+});
+
+const invitationSignature = computed(() => {
+    const query = new URLSearchParams(window.location.search);
+
+    return query.get('signature') ?? '';
 });
 
 const goHome = () => {
@@ -218,7 +398,7 @@ const resolveInvitationApiErrorMessage = (error, fallbackKey = 'register.invitat
 };
 
 const loadInvitation = async () => {
-    if (!invitationToken.value) {
+    if (!invitationToken.value || !invitationExpires.value || !invitationSignature.value) {
         invitationError.value = t('register.invitation.missingToken');
         return;
     }
@@ -227,7 +407,12 @@ const loadInvitation = async () => {
         invitationLoading.value = true;
         invitationError.value = '';
 
-        const response = await axios.get(`/api/auth/invitations/${invitationToken.value}`);
+        const response = await axios.get(`/api/auth/invitations/${invitationToken.value}`, {
+            params: {
+                expires: Number(invitationExpires.value),
+                signature: invitationSignature.value,
+            },
+        });
         invitationInfo.value = response?.data?.invitation ?? null;
     } catch (error) {
         invitationInfo.value = null;
@@ -250,6 +435,8 @@ const completeInvitationRegistration = async () => {
 
         const response = await axios.post('/api/auth/register/invitation', {
             token: invitationToken.value,
+            expires: Number(invitationExpires.value),
+            signature: invitationSignature.value,
             password: invitationForm.password,
             password_confirmation: invitationForm.password_confirmation,
         });
@@ -271,8 +458,43 @@ const completeInvitationRegistration = async () => {
     }
 };
 
+const submitResetPassword = async () => {
+    if (!resetPasswordParamsReady.value) {
+        ElMessage.error(t('register.resetPassword.missingParams'));
+        return;
+    }
+
+    const form = resetPasswordFormRef.value;
+
+    if (!form) {
+        return;
+    }
+
+    try {
+        await form.validate();
+        resetPasswordSubmitting.value = true;
+
+        await axios.post('/api/auth/password/reset', {
+            token: resetPasswordToken.value,
+            email: resetPasswordEmail.value,
+            expires: Number(resetPasswordExpires.value),
+            signature: resetPasswordSignature.value,
+            password: resetPasswordForm.password,
+            password_confirmation: resetPasswordForm.password_confirmation,
+        });
+
+        ElMessage.success(t('register.resetPassword.success'));
+        goHome();
+    } catch (error) {
+        const message = error?.response?.data?.message ?? t('register.resetPassword.failure');
+        ElMessage.error(message);
+    } finally {
+        resetPasswordSubmitting.value = false;
+    }
+};
+
 onMounted(async () => {
-    if (isVerificationResultMode.value) {
+    if (isVerificationResultMode.value || isResetPasswordMode.value) {
         return;
     }
 

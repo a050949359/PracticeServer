@@ -6,14 +6,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
-use DB;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, HasApiTokens;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * Get the team id for multi-tenancy
@@ -66,32 +65,34 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Team::class, 'model_has_roles', 'model_id', 'team_id')
             ->where('model_type', static::class);
-            // ->withTimestamps();
+        // ->withTimestamps();
     }
 
     /**
      * Check if user belongs to a specific team.
      */
-    public function belongsToTeam(Team|int $team): bool|null
+    public function belongsToTeam(Team|int $team): ?bool
     {
-        if (is_int($team) && !Team::query()->where('id', $team)->exists()) {
+        if (is_int($team) && ! Team::query()->where('id', $team)->exists()) {
             return null;
         }
 
         $teamId = $team instanceof Team ? $team->id : $team;
+
         return $this->teams()->where('team_id', $teamId)->exists();
     }
-    
+
     /**
      * Get roles for a specific team.
      */
     public function getRolesForTeam(Team|int $team)
     {
-        if (is_int($team) && !Team::query()->where('id', $team)->exists()) {
+        if (is_int($team) && ! Team::query()->where('id', $team)->exists()) {
             return null;
         }
 
         setPermissionsTeamId($team);
+
         return $this->roles->first();
     }
 }

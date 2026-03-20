@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Mail\TypedEmail;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\Test;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class EmailVerificationTest extends TestCase
@@ -50,7 +52,7 @@ class EmailVerificationTest extends TestCase
     {
         Mail::fake();
 
-        $actor = User::factory()->create();
+        $actor = $this->createStaffUser();
         $targetUser = User::factory()->create([
             'email_verified_at' => null,
         ]);
@@ -103,5 +105,27 @@ class EmailVerificationTest extends TestCase
         $this->assertStringContainsString('status=success', $redirectLocation);
 
         $this->assertNotNull($user->fresh()->email_verified_at);
+    }
+
+    private function createStaffUser(): User
+    {
+        $user = User::factory()->create();
+
+        $team = Team::query()->firstOrCreate(['name' => 'Staff']);
+        $staffRole = Role::query()->firstOrCreate(
+            [
+                'team_id' => $team->id,
+                'name' => 'staff',
+                'guard_name' => config('auth.defaults.guard'),
+            ],
+            [
+                'is_leader' => false,
+            ],
+        );
+
+        setPermissionsTeamId($team->id);
+        $user->assignRole($staffRole);
+
+        return $user;
     }
 }

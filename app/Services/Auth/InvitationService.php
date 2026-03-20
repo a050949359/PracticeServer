@@ -2,7 +2,6 @@
 
 namespace App\Services\Auth;
 
-use App\Events\SendEmailRequested;
 use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Database\DatabaseManager;
@@ -14,6 +13,7 @@ class InvitationService
     public function __construct(
         private DatabaseManager $database,
         private RegistrationAssignmentService $registrationAssignmentService,
+        private EmailService $emailService,
     ) {}
 
     public function create(array $validated, User $inviter): JsonResponse
@@ -33,18 +33,7 @@ class InvitationService
         }
         );
 
-        event(new SendEmailRequested(
-            email: $invitation->email,
-            type: 'registration_invite',
-            name: $invitation->name,
-            data: [
-                'action_url' => sprintf(
-                    '%s/register?token=%s',
-                    rtrim(config('app.url'), '/'),
-                    $invitation->token,
-                ),
-            ],
-        ));
+        $this->emailService->sendRegistrationInviteTo($invitation);
 
         return response()->json([
             'message' => 'Invitation created',
@@ -68,6 +57,15 @@ class InvitationService
                 'message' => 'Invitation not found',
                 'code' => 'invitation_not_found',
             ], 404);
+        }
+
+        $expires = (int) request()->query('expires', 0);
+        $signature = (string) request()->query('signature', '');
+        if (! $this->hasValidInvitationSignature($invitation, $expires, $signature)) {
+            return response()->json([
+                'message' => 'Invalid or expired invitation signature',
+                'code' => 'invalid_invitation_signature',
+            ], 403);
         }
 
         $stateErrorResponse = $this->validateInvitationState($invitation);
@@ -96,6 +94,13 @@ class InvitationService
                 'message' => 'Invitation not found',
                 'code' => 'invitation_not_found',
             ], 404);
+        }
+
+        if (! $this->hasValidInvitationSignature($invitation, (int) $validated['expires'], (string) $validated['signature'])) {
+            return response()->json([
+                'message' => 'Invalid or expired invitation signature',
+                'code' => 'invalid_invitation_signature',
+            ], 403);
         }
 
         $stateErrorResponse = $this->validateInvitationState($invitation);
@@ -158,5 +163,20 @@ class InvitationService
         }
 
         return null;
+    }
+
+    private function hasValidInvitationSignature(Invitation $invitation, int $expires, string $signature): bool
+    {
+        if ($expires <= 0 || now()->timestamp > $expires) {
+            return false;
+        }
+
+        $expectedSignature = hash_hmac(
+            'sha256',
+            implode('|', [$invitation->email, $invitation->token, $expires]),
+            (string) config('app.key'),
+        );
+
+        return hash_equals($expectedSignature, $signature);
     }
 }

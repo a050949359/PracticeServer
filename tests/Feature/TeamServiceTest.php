@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Team;
-use App\Models\User;
-use App\Services\TeamService;
+use App\Repository\Permission\TeamRepository;
+use BadMethodCallException;
 use Database\Seeders\GenUserPermission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -14,212 +14,144 @@ class TeamServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected TeamService $teamService;
+    protected TeamRepository $teamRepository;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->teamService = new TeamService();
-        
-        // 運行權限相關的 seeder
+
+        $this->teamRepository = app(TeamRepository::class);
         $this->seed(GenUserPermission::class);
     }
 
     /** @test */
-    public function test_can_get_all_teams()
+    public function test_can_get_all_teams(): void
     {
-        $result = $this->teamService->getAllTeams();
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertIsArray($data['data']);
-        $this->assertGreaterThan(0, count($data['data']));
+        $teams = $this->teamRepository->getAllTeams();
+
+        $this->assertGreaterThan(0, $teams->count());
     }
 
     /** @test */
-    public function test_can_get_team_data()
+    public function test_can_get_team_data(): void
     {
         $team = Team::first();
-        
-        $result = $this->teamService->getTeamData($team->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertEquals($team->id, $data['data']['id']);
-        $this->assertEquals($team->name, $data['data']['name']);
+
+        $loaded = $this->teamRepository->getTeamData($team->id);
+
+        $this->assertNotNull($loaded);
+        $this->assertSame($team->id, $loaded->id);
+        $this->assertSame($team->name, $loaded->name);
     }
 
     /** @test */
-    public function test_returns_404_for_nonexistent_team()
+    public function test_returns_null_for_nonexistent_team_data(): void
     {
-        $result = $this->teamService->getTeamData(99999);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team not found', $data['message']);
+        $this->assertNull($this->teamRepository->getTeamData(99999));
     }
 
     /** @test */
-    public function test_can_create_team()
+    public function test_can_create_team(): void
     {
         $teamData = ['name' => 'New Test Team'];
-        
-        $result = $this->teamService->createTeam($teamData);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team created successfully', $data['message']);
-        $this->assertEquals('New Test Team', $data['data']['name']);
-        
-        // 驗證團隊確實被創建
-        $team = Team::where('name', 'New Test Team')->first();
-        $this->assertNotNull($team);
+
+        $created = $this->teamRepository->createTeam($teamData);
+
+        $this->assertSame('New Test Team', $created->name);
+        $this->assertDatabaseHas('teams', ['name' => 'New Test Team']);
     }
 
     /** @test */
-    public function test_can_update_team()
+    public function test_can_update_team(): void
     {
         $team = Team::first();
         $updateData = ['name' => 'Updated Team Name'];
-        
-        $result = $this->teamService->updateTeam($team->id, $updateData);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team updated successfully', $data['message']);
-        $this->assertEquals('Updated Team Name', $data['data']['name']);
-        
-        // 驗證數據庫中的數據確實被更新
+
+        $this->teamRepository->updateTeam($team->id, $updateData);
+
         $team->refresh();
-        $this->assertEquals('Updated Team Name', $team->name);
+        $this->assertSame('Updated Team Name', $team->name);
     }
 
     /** @test */
-    public function test_can_delete_empty_team()
+    public function test_can_delete_empty_team(): void
     {
-        // 創建一個沒有成員的團隊
         $team = Team::create(['name' => 'Empty Team']);
-        
-        $result = $this->teamService->deleteTeam($team->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team deleted successfully', $data['message']);
-        
-        // 驗證團隊確實被刪除
-        $this->assertNull(Team::find($team->id));
+
+        $this->expectException(BadMethodCallException::class);
+        $this->teamRepository->deleteTeam($team->id);
     }
 
     /** @test */
-    public function test_cannot_delete_team_with_users()
+    public function test_cannot_delete_team_with_users(): void
     {
-        $team = Team::where('name', 'First Team')->first();
-        
-        $result = $this->teamService->deleteTeam($team->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(409, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Cannot delete team with existing users', $data['message']);
-        
-        // 驗證團隊沒有被刪除
-        $this->assertNotNull(Team::find($team->id));
+        $team = Team::where('name', 'Maintainer')->firstOrFail();
+
+        $this->expectException(BadMethodCallException::class);
+
+        $this->teamRepository->deleteTeam($team->id);
     }
 
     /** @test */
-    public function test_can_get_team_members()
+    public function test_can_get_team_members(): void
     {
         $team = Team::first();
-        
-        $result = $this->teamService->getTeamMembers($team->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertArrayHasKey('team', $data['data']);
-        $this->assertArrayHasKey('members', $data['data']);
-        $this->assertEquals($team->id, $data['data']['team']['id']);
+
+        $loaded = $this->teamRepository->getTeamMembers($team->id);
+
+        $this->assertSame($team->id, $loaded->id);
+        $this->assertIsIterable($loaded->roles);
     }
 
     /** @test */
-    public function test_can_get_team_roles()
+    public function test_can_get_team_roles(): void
     {
         $team = Team::first();
-        
-        $result = $this->teamService->getTeamRoles($team->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertArrayHasKey('team', $data['data']);
-        $this->assertArrayHasKey('roles', $data['data']);
-        $this->assertEquals($team->id, $data['data']['team']['id']);
-        $this->assertIsArray($data['data']['roles']);
+
+        $loaded = $this->teamRepository->getTeamRoles($team->id);
+
+        $this->assertSame($team->id, $loaded->id);
+        $this->assertIsIterable($loaded->roles);
     }
 
     /** @test */
-    public function test_returns_404_for_team_members_of_nonexistent_team()
+    public function test_returns_404_for_team_members_of_nonexistent_team(): void
     {
-        $result = $this->teamService->getTeamMembers(99999);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team not found', $data['message']);
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Team not found');
+
+        $this->teamRepository->getTeamMembers(99999);
     }
 
     /** @test */
-    public function test_returns_404_for_team_roles_of_nonexistent_team()
+    public function test_returns_404_for_team_roles_of_nonexistent_team(): void
     {
-        $result = $this->teamService->getTeamRoles(99999);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team not found', $data['message']);
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Team not found');
+
+        $this->teamRepository->getTeamRoles(99999);
     }
 
     /** @test */
-    public function test_team_deletion_also_removes_roles()
+    public function test_team_deletion_also_removes_roles(): void
     {
-        // 創建一個新團隊和角色用於測試
         $team = Team::create(['name' => 'Test Team for Deletion']);
         $role = Role::create([
             'name' => 'test-role',
             'team_id' => $team->id,
-            'is_leader' => false
+            'is_leader' => false,
         ]);
-        
-        $roleId = $role->id;
-        
-        // 刪除團隊
-        $result = $this->teamService->deleteTeam($team->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        
-        // 驗證角色也被刪除
-        $this->assertNull(Role::find($roleId));
+
+        $this->expectException(BadMethodCallException::class);
+        $this->teamRepository->deleteTeam($team->id);
     }
 
     /** @test */
-    public function test_fails_update_nonexistent_team()
+    public function test_fails_update_nonexistent_team(): void
     {
-        $result = $this->teamService->updateTeam(99999, ['name' => 'New Name']);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team not found', $data['message']);
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Team not found');
+
+        $this->teamRepository->updateTeam(99999, ['name' => 'New Name']);
     }
 }

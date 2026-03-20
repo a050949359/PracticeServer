@@ -43,7 +43,7 @@ return [
         'api' => [
             'driver' => 'token',
             'provider' => 'users',
-        ]
+        ],
     ],
 
     /*
@@ -115,5 +115,14 @@ return [
     */
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+    'password_policy' => [
+        'history_generations' => (int) env('PASSWORD_HISTORY_GENERATIONS', 3),
+        'change_cooldown_minutes' => (int) env('PASSWORD_CHANGE_COOLDOWN_MINUTES', 10),
+        'min_length' => (int) env('PASSWORD_MIN_LENGTH', 12),
+        'require_mixed_case' => (bool) env('PASSWORD_REQUIRE_MIXED_CASE', true),
+        'require_numbers' => (bool) env('PASSWORD_REQUIRE_NUMBERS', true),
+        'require_symbols' => (bool) env('PASSWORD_REQUIRE_SYMBOLS', true),
+    ],
 
 ];

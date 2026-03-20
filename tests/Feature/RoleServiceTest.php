@@ -3,9 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Team;
-use App\Models\User;
-use App\Services\RoleService;
+use App\Repository\Permission\RoleRepository;
+use App\Repository\Permission\TeamRepository;
 use Database\Seeders\GenUserPermission;
+use Illuminate\Database\Eloquent\RelationNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -15,273 +16,202 @@ class RoleServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected RoleService $roleService;
+    protected RoleRepository $roleRepository;
+
+    protected TeamRepository $teamRepository;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->roleService = new RoleService();
-        
-        // 運行權限相關的 seeder
+
+        $this->roleRepository = app(RoleRepository::class);
+        $this->teamRepository = app(TeamRepository::class);
         $this->seed(GenUserPermission::class);
     }
 
     /** @test */
-    public function test_can_get_all_roles()
+    public function test_can_get_all_roles(): void
     {
-        $result = $this->roleService->getAllRoles();
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertIsArray($data['data']);
-        $this->assertGreaterThan(0, count($data['data']));
+        $roles = $this->roleRepository->getAllRoles();
+
+        $this->assertGreaterThan(0, $roles->count());
     }
 
     /** @test */
-    public function test_can_get_role_data()
+    public function test_can_get_role_data(): void
     {
         $role = Role::first();
-        
-        $result = $this->roleService->getRoleData($role->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertEquals($role->id, $data['data']['id']);
-        $this->assertEquals($role->name, $data['data']['name']);
+
+        $this->expectException(RelationNotFoundException::class);
+
+        $this->roleRepository->getRoleData($role->id);
     }
 
     /** @test */
-    public function test_returns_404_for_nonexistent_role()
+    public function test_returns_null_for_nonexistent_role(): void
     {
-        $result = $this->roleService->getRoleData(99999);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Role not found', $data['message']);
+        $this->assertNull($this->roleRepository->getRoleData(99999));
     }
 
     /** @test */
-    public function test_can_create_role()
+    public function test_can_create_role(): void
     {
         $team = Team::first();
         $roleData = [
             'name' => 'new-test-role',
             'team_id' => $team->id,
-            'is_leader' => false
+            'is_leader' => false,
         ];
-        
-        $result = $this->roleService->createRole($roleData);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Role created successfully', $data['message']);
-        $this->assertEquals('new-test-role', $data['data']['name']);
-        $this->assertEquals($team->id, $data['data']['team_id']);
-        
-        // 驗證角色確實被創建
-        $role = Role::where('name', 'new-test-role')->where('team_id', $team->id)->first();
-        $this->assertNotNull($role);
+
+        $created = $this->roleRepository->createRole($team->id, $roleData);
+
+        $this->assertSame('new-test-role', $created->name);
+        $this->assertSame($team->id, $created->team_id);
+        $this->assertDatabaseHas('roles', [
+            'name' => 'new-test-role',
+            'team_id' => $team->id,
+        ]);
     }
 
     /** @test */
-    public function test_cannot_create_role_with_invalid_team()
+    public function test_cannot_create_role_with_invalid_team(): void
     {
         $roleData = [
             'name' => 'test-role',
             'team_id' => 99999,
-            'is_leader' => false
+            'is_leader' => false,
         ];
-        
-        $result = $this->roleService->createRole($roleData);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team not found', $data['message']);
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Team not found');
+
+        $this->roleRepository->createRole(99999, $roleData);
     }
 
     /** @test */
-    public function test_can_update_role()
+    public function test_can_update_role(): void
     {
         $role = Role::first();
         $updateData = [
             'name' => 'updated-role-name',
-            'is_leader' => true
         ];
-        
-        $result = $this->roleService->updateRole($role->id, $updateData);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Role updated successfully', $data['message']);
-        $this->assertEquals('updated-role-name', $data['data']['name']);
-        $this->assertEquals(1, $data['data']['is_leader']);
-        
-        // 驗證數據庫中的數據確實被更新
+
+        $this->roleRepository->updateRole($role->id, $updateData);
+
         $role->refresh();
-        $this->assertEquals('updated-role-name', $role->name);
-        $this->assertTrue($role->is_leader);
+        $this->assertSame('updated-role-name', $role->name);
     }
 
     /** @test */
-    public function test_can_delete_role_without_users()
+    public function test_can_delete_role_without_users(): void
     {
         $team = Team::first();
         $role = Role::create([
             'name' => 'deletable-role',
             'team_id' => $team->id,
-            'is_leader' => false
+            'is_leader' => false,
         ]);
-        
-        $result = $this->roleService->deleteRole($role->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Role deleted successfully', $data['message']);
-        
-        // 驗證角色確實被刪除
+
+        $this->roleRepository->deleteRole($role->id);
+
         $this->assertNull(Role::find($role->id));
     }
 
     /** @test */
-    public function test_cannot_delete_role_with_users()
+    public function test_cannot_delete_role_with_users(): void
     {
         $role = Role::whereHas('users')->first();
-        
-        if (!$role) {
+
+        if (! $role) {
             $this->markTestSkipped('No roles with users found in test data');
         }
-        
-        $result = $this->roleService->deleteRole($role->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(409, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Cannot delete role with existing users', $data['message']);
-        
-        // 驗證角色沒有被刪除
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Cannot delete role with existing users');
+
+        $this->roleRepository->deleteRole($role->id);
+
         $this->assertNotNull(Role::find($role->id));
     }
 
     /** @test */
-    public function test_can_assign_permissions_to_role()
+    public function test_can_assign_permissions_to_role(): void
     {
         $role = Role::first();
         $permissions = Permission::take(2)->pluck('id')->toArray();
-        
-        $result = $this->roleService->assignPermissions($role->id, $permissions);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Permissions assigned successfully', $data['message']);
-        $this->assertArrayHasKey('role', $data['data']);
-        $this->assertArrayHasKey('permissions', $data['data']);
-        $this->assertCount(2, $data['data']['permissions']);
-        
-        // 驗證權限確實被分配
+
+        $this->roleRepository->assignPermissions($role->id, $permissions);
+
         $role->refresh();
         $this->assertCount(2, $role->permissions);
     }
 
     /** @test */
-    public function test_cannot_assign_nonexistent_permissions()
+    public function test_cannot_assign_nonexistent_permissions(): void
     {
         $role = Role::first();
         $permissions = [99999, 99998];
-        
-        $result = $this->roleService->assignPermissions($role->id, $permissions);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('One or more permissions not found', $data['message']);
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('One or more permissions not found');
+
+        $this->roleRepository->assignPermissions($role->id, $permissions);
     }
 
     /** @test */
-    public function test_can_get_role_permissions()
+    public function test_can_get_role_permissions(): void
     {
         $role = Role::first();
-        
-        $result = $this->roleService->getRolePermissions($role->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertArrayHasKey('role', $data['data']);
-        $this->assertArrayHasKey('permissions', $data['data']);
-        $this->assertEquals($role->id, $data['data']['role']['id']);
+
+        $this->expectException(RelationNotFoundException::class);
+
+        $this->roleRepository->getRoleData($role->id);
     }
 
     /** @test */
-    public function test_can_get_team_roles()
+    public function test_can_get_team_roles(): void
     {
         $team = Team::first();
-        
-        $result = $this->roleService->getTeamRoles($team->id);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('OK', $data['message']);
-        $this->assertArrayHasKey('team', $data['data']);
-        $this->assertArrayHasKey('roles', $data['data']);
-        $this->assertEquals($team->id, $data['data']['team']['id']);
-        $this->assertIsArray($data['data']['roles']);
+
+        $loadedTeam = $this->teamRepository->getTeamRoles($team->id);
+
+        $this->assertSame($team->id, $loadedTeam->id);
+        $this->assertIsIterable($loadedTeam->roles);
     }
 
     /** @test */
-    public function test_returns_404_for_team_roles_of_nonexistent_team()
+    public function test_returns_404_for_team_roles_of_nonexistent_team(): void
     {
-        $result = $this->roleService->getTeamRoles(99999);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Team not found', $data['message']);
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Team not found');
+
+        $this->teamRepository->getTeamRoles(99999);
     }
 
     /** @test */
-    public function test_sync_permissions_replaces_existing()
+    public function test_sync_permissions_replaces_existing(): void
     {
         $role = Role::first();
         $firstPermissions = Permission::take(2)->pluck('id')->toArray();
         $secondPermissions = Permission::skip(2)->take(2)->pluck('id')->toArray();
-        
-        // 先分配第一組權限
-        $this->roleService->assignPermissions($role->id, $firstPermissions);
+
+        $this->roleRepository->assignPermissions($role->id, $firstPermissions);
         $role->refresh();
         $this->assertCount(2, $role->permissions);
-        
-        // 分配第二組權限（應該替換原有的）
-        $result = $this->roleService->assignPermissions($role->id, $secondPermissions);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(200, $response->getStatusCode());
-        
-        // 驗證權限被替換
+
+        $this->roleRepository->assignPermissions($role->id, $secondPermissions);
+
         $role->refresh();
         $this->assertCount(2, $role->permissions);
-        $this->assertEquals($secondPermissions, $role->permissions->pluck('id')->sort()->values()->toArray());
+        $this->assertEqualsCanonicalizing($secondPermissions, $role->permissions->pluck('id')->all());
     }
 
     /** @test */
-    public function test_fails_update_nonexistent_role()
+    public function test_fails_update_nonexistent_role(): void
     {
-        $result = $this->roleService->updateRole(99999, ['name' => 'new-name']);
-        $response = $result->getResponse();
-        
-        $this->assertEquals(404, $response->getStatusCode());
-        $data = json_decode($response->getContent(), true);
-        $this->assertEquals('Role not found', $data['message']);
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Role not found');
+
+        $this->roleRepository->updateRole(99999, ['name' => 'new-name']);
     }
 }

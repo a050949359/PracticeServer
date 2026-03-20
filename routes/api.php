@@ -11,11 +11,15 @@ Route::prefix('auth')->group(function () {
     Route::post('register/invitation', [AuthController::class, 'registerByInvitation']);
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('password/forgot', [AuthController::class, 'forgotPassword']);
+    Route::post('password/reset', [AuthController::class, 'resetPassword']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('email/verification-notification', [AuthController::class, 'resendVerificationEmail']);
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me', [AuthController::class, 'me']);
+        Route::patch('me', [AuthController::class, 'updateMe']);
+        Route::post('password/change', [AuthController::class, 'changePassword']);
     });
 });
 

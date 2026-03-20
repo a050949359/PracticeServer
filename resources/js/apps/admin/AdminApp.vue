@@ -6,6 +6,7 @@
             nav-label="auth actions"
             :actions="navbarActions"
             :authenticated="isAuthenticated"
+            :user-status-label="userStatusLabel"
             :user-label="userLabel"
             :menu-items="authMenuItems"
             @action="handleNavbarAction"
@@ -50,7 +51,12 @@
         @logged-in="handleLoggedIn"
     />
 
-    <profile-dialog v-model:visible="profileDialogVisible" :user="currentUser" />
+    <profile-dialog
+        v-model:visible="profileDialogVisible"
+        :user="currentUser"
+        @submit="submitProfile"
+        @change-password="submitChangePassword"
+    />
 
     <invite-dialog
         v-model:visible="inviteDialogVisible"
@@ -62,11 +68,14 @@
 
 <script setup>
 import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import AppNavbar from '../../components/AppNavbar.vue';
 import AuthDialogs from '../../components/AuthDialogs.vue';
 import InviteDialog from '../../components/InviteDialog.vue';
 import ProfileDialog from '../../components/ProfileDialog.vue';
 import { useAuthSession } from '../../composables/useAuthSession';
+
+const { t } = useI18n();
 
 const guestNavbarActions = [
     {
@@ -96,11 +105,32 @@ const authMenuItems = [
     },
 ];
 
-const { currentUser, isAuthenticated, isStaff, userLabel, buildAuthHeaders, applyLoginToken, logout, restoreSession, loadCurrentUser } =
+const {
+    currentUser,
+    isAuthenticated,
+    isStaff,
+    isEmailVerified,
+    userLabel,
+    buildAuthHeaders,
+    applyLoginToken,
+    updateProfile,
+    changePassword,
+    logout,
+    restoreSession,
+    loadCurrentUser,
+} =
     useAuthSession();
 
 const navbarActions = computed(() => {
     return isAuthenticated.value ? [] : guestNavbarActions;
+});
+
+const userStatusLabel = computed(() => {
+    if (!isAuthenticated.value || isEmailVerified.value) {
+        return '';
+    }
+
+    return t('navbar.userStatus.unverified');
 });
 
 const loginDialogVisible = ref(false);
@@ -123,6 +153,33 @@ const openProfileDialog = async () => {
 
 const openInviteDialog = () => {
     inviteDialogVisible.value = true;
+};
+
+const submitProfile = async (payload) => {
+    try {
+        await updateProfile(payload);
+        profileDialogVisible.value = false;
+        ElMessage.success(t('profileDialog.messages.updateSuccess'));
+    } catch (_error) {
+        ElMessage.error(t('profileDialog.messages.updateFailure'));
+    }
+};
+
+const submitChangePassword = async (payload) => {
+    try {
+        await changePassword(payload);
+        ElMessage.success(t('profileDialog.messages.passwordUpdateSuccess'));
+    } catch (error) {
+        const code = error?.response?.data?.code;
+        const messageByCode = {
+            current_password_incorrect: t('profileDialog.messages.currentPasswordIncorrect'),
+            password_change_cooldown: t('profileDialog.messages.passwordCooldown'),
+            password_history_violation: t('profileDialog.messages.passwordHistoryViolation'),
+            password_reused: t('profileDialog.messages.passwordReused'),
+        };
+
+        ElMessage.error(messageByCode[code] ?? t('profileDialog.messages.passwordUpdateFailure'));
+    }
 };
 
 const handleNavbarAction = (actionKey) => {
