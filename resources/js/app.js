@@ -1,5 +1,6 @@
 import './bootstrap';
 import '../css/spa.css';
+import 'element-plus/es/components/message/style/css';
 import { createApp } from 'vue';
 import AdminApp from './apps/admin/AdminApp.vue';
 import PublicApp from './apps/public/PublicApp.vue';

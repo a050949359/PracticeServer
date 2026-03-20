@@ -12,6 +12,8 @@ class AuthService
 {
     private const DEFAULT_REGISTER_CONTEXT = 'user_self_register';
 
+    private const STAFF_TEAM_NAMES = ['Developer', 'Maintainer', 'Staff'];
+
     public function __construct(
         private DatabaseManager $database,
         private RegistrationAssignmentService $registrationAssignmentService,
@@ -47,13 +49,39 @@ class AuthService
 
     public function login(array $validated): JsonResponse
     {
-        if (! Auth::attempt($validated)) {
+        $credentials = [
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+        ];
+
+        if (! Auth::attempt($credentials)) {
             return response()->json([
                 'message' => 'Invalid credentials',
+                'code' => 'invalid_credentials',
             ], 422);
         }
 
         $user = Auth::user();
+        $audience = $validated['audience'];
+        $isStaffUser = $this->isStaffUser($user);
+
+        if ($audience === 'admin' && ! $isStaffUser) {
+            Auth::logout();
+
+            return response()->json([
+                'message' => 'Forbidden: admin login required',
+                'code' => 'forbidden_admin_only',
+            ], 403);
+        }
+
+        if ($audience === 'public' && $isStaffUser) {
+            Auth::logout();
+
+            return response()->json([
+                'message' => 'Forbidden: public login required',
+                'code' => 'forbidden_public_only',
+            ], 403);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -89,7 +117,7 @@ class AuthService
             'name' => $user->name,
             'email' => $user->email,
             'email_verified_at' => $user->email_verified_at,
-            'is_staff' => $user->roles()->where('name', 'staff')->exists(),
+            'is_staff' => $this->isStaffUser($user),
         ]);
     }
 
@@ -144,7 +172,7 @@ class AuthService
             ];
         }
 
-        $redirectTo = $user->roles()->where('name', 'staff')->exists() ? '/admin' : '/';
+        $redirectTo = $this->isStaffUser($user) ? '/admin' : '/';
 
         if (! hash_equals((string) $hash, sha1($user->email))) {
             return [
@@ -194,5 +222,10 @@ class AuthService
                 'email' => $user->email,
             ],
         ]);
+    }
+
+    private function isStaffUser(User $user): bool
+    {
+        return $user->teams()->whereIn('name', self::STAFF_TEAM_NAMES)->exists();
     }
 }

@@ -2,12 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Team;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
+use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class GenUserPermission extends Seeder
 {
@@ -35,9 +34,10 @@ class GenUserPermission extends Seeder
         }
 
         // 建立團隊
-        $defaultTeam = Team::create(['name' => 'Default']);
-        $firstTeam = Team::create(['name' => 'First Team']);
-        $visitorTeam = Team::create(['name' => 'Visitor Team']);
+        $defaultTeam = Team::create(['name' => 'Developer']);
+        $firstTeam = Team::create(['name' => 'Maintainer']);
+        $visitorTeam = Team::create(['name' => 'Staff']);
+        $memberTeam = Team::create(['name' => 'Member']);
 
         // 建立角色並分配權限
         // Admin 角色 (Default Team)
@@ -48,7 +48,7 @@ class GenUserPermission extends Seeder
         $T1leaderRole = Role::create(['name' => 'leader', 'team_id' => $firstTeam->id, 'is_leader' => true]);
         $T1leaderRole->givePermissionTo([
             'user.view',
-            'user.create', 
+            'user.create',
             'user.update',
             'user.delete',
             'user.manage.team',
@@ -60,9 +60,9 @@ class GenUserPermission extends Seeder
             'user.view',
             'user.create',
             'user.update',
-            'user.delete'
+            'user.delete',
         ]);
-        
+
         // Visitor 角色 (Visitor Team)
         $visitorRole = Role::create(['name' => 'visitor', 'team_id' => $visitorTeam->id, 'is_leader' => false]);
         $visitorRole->givePermissionTo(['user.view']);
@@ -77,7 +77,7 @@ class GenUserPermission extends Seeder
         setPermissionsTeamId($defaultTeam); // 設定權限的 team_id 為第一個團隊
         $admin->assignRole($adminRole);
 
-        // Leader 使用者  
+        // Leader 使用者
         $leader = User::create([
             'name' => 'Leader',
             'email' => 'leader@example.com',
@@ -89,7 +89,7 @@ class GenUserPermission extends Seeder
         // Member 使用者（屬於兩個團隊）
         $member = User::create([
             'name' => 'Member',
-            'email' => 'editor@example.com', 
+            'email' => 'editor@example.com',
             'password' => bcrypt('password'),
         ]);
         setPermissionsTeamId($firstTeam); // 設定權限的 team_id 為第一個團隊

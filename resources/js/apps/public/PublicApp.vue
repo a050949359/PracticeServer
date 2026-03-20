@@ -42,6 +42,7 @@
         v-model:login-visible="loginDialogVisible"
         v-model:register-visible="registerDialogVisible"
         login-title="一般使用者登入"
+        login-audience="public"
         register-title="一般使用者註冊"
         register-context="user_self_register"
         @logged-in="handleLoggedIn"
@@ -93,7 +94,7 @@ const authMenuItems = [
     },
 ];
 
-const { currentUser, isAuthenticated, userLabel, buildAuthHeaders, applyLoginToken, logout, restoreSession, loadCurrentUser } =
+const { currentUser, isAuthenticated, isStaff, userLabel, buildAuthHeaders, applyLoginToken, logout, restoreSession, loadCurrentUser } =
     useAuthSession();
 
 const navbarActions = computed(() => {
@@ -144,8 +145,21 @@ const handleNavbarAction = (actionKey) => {
     }
 };
 
+const enforcePublicOnlyAccount = async () => {
+    if (!isStaff.value) {
+        return false;
+    }
+
+    await logout();
+    ElMessage.error('後台帳號不可登入前台，已自動登出');
+
+    return true;
+};
+
 const handleLoggedIn = async (token) => {
     await applyLoginToken(token);
+
+    await enforcePublicOnlyAccount();
 };
 
 const submitLogout = async () => {
@@ -155,5 +169,7 @@ const submitLogout = async () => {
 
 onMounted(async () => {
     await restoreSession();
+
+    await enforcePublicOnlyAccount();
 });
 </script>

@@ -30,6 +30,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'email' => 'required|string|email',
             'password' => 'required|string',
+            'audience' => 'required|string|in:public,admin',
         ]);
 
         return $this->authService->login($validated);

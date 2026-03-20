@@ -28,7 +28,7 @@ class EmailEventTest extends TestCase
 
         Mail::assertSent(TypedEmail::class, function (TypedEmail $mail): bool {
             return $mail->type === 'welcome'
-                && $mail->envelope()->subject === '歡迎加入 PracticeServer';
+                && $mail->envelope()->subject === __('mail.welcome.subject', ['app' => config('app.name')]);
         });
     }
 
@@ -50,7 +50,7 @@ class EmailEventTest extends TestCase
 
         Mail::assertSent(TypedEmail::class, function (TypedEmail $mail): bool {
             return $mail->type === 'registration_invite'
-                && $mail->envelope()->subject === 'PracticeServer 註冊邀請';
+                && $mail->envelope()->subject === __('mail.registration_invite.subject', ['app' => config('app.name')]);
         });
     }
 }

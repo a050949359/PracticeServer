@@ -1,22 +1,22 @@
 <template>
     <el-dialog
         v-model="dialogVisible"
-        title="發送註冊邀請"
+        :title="t('inviteDialog.title')"
         width="min(560px, 92vw)"
         align-center
         destroy-on-close
     >
         <el-form ref="inviteFormRef" :model="inviteForm" :rules="inviteRules" label-position="top">
-            <el-form-item label="受邀者名稱" prop="name">
-                <el-input v-model="inviteForm.name" placeholder="可留空" />
+            <el-form-item :label="t('inviteDialog.form.nameLabel')" prop="name">
+                <el-input v-model="inviteForm.name" :placeholder="t('inviteDialog.form.namePlaceholder')" />
             </el-form-item>
 
-            <el-form-item label="受邀者 Email" prop="email">
+            <el-form-item :label="t('inviteDialog.form.emailLabel')" prop="email">
                 <el-input v-model="inviteForm.email" type="email" placeholder="name@example.com" />
             </el-form-item>
 
-            <el-form-item label="邀請類型" prop="context">
-                <el-select v-model="inviteForm.context" placeholder="選擇邀請類型" style="width: 100%">
+            <el-form-item :label="t('inviteDialog.form.contextLabel')" prop="context">
+                <el-select v-model="inviteForm.context" :placeholder="t('inviteDialog.form.contextPlaceholder')" style="width: 100%">
                     <el-option
                         v-for="option in inviteContextOptions"
                         :key="option.value"
@@ -29,8 +29,8 @@
 
         <template #footer>
             <el-space>
-                <el-button @click="dialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="inviting" @click="submitInvite">送出邀請</el-button>
+                <el-button @click="dialogVisible = false">{{ t('common.cancel') }}</el-button>
+                <el-button type="primary" :loading="inviting" @click="submitInvite">{{ t('inviteDialog.actions.submit') }}</el-button>
             </el-space>
         </template>
     </el-dialog>
@@ -39,6 +39,9 @@
 <script setup>
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
     visible: {
@@ -70,18 +73,18 @@ const inviteForm = reactive({
     context: props.defaultContext,
 });
 
-const inviteContextCatalog = {
-    user_invited_register: {
-        label: '一般使用者邀請',
-        value: 'user_invited_register',
-    },
-    staff_invited_register: {
-        label: '員工邀請',
-        value: 'staff_invited_register',
-    },
-};
-
 const inviteContextOptions = computed(() => {
+    const inviteContextCatalog = {
+        user_invited_register: {
+            label: t('inviteDialog.contexts.userInvitedRegister'),
+            value: 'user_invited_register',
+        },
+        staff_invited_register: {
+            label: t('inviteDialog.contexts.staffInvitedRegister'),
+            value: 'staff_invited_register',
+        },
+    };
+
     return props.allowedContexts.map((context) => inviteContextCatalog[context]).filter(Boolean);
 });
 
@@ -99,10 +102,10 @@ const resolveInviteContext = () => {
 
 const inviteRules = {
     email: [
-        { required: true, message: '請輸入 Email', trigger: 'blur' },
-        { type: 'email', message: 'Email 格式不正確', trigger: 'blur' },
+        { required: true, message: t('inviteDialog.validation.emailRequired'), trigger: 'blur' },
+        { type: 'email', message: t('inviteDialog.validation.emailInvalid'), trigger: 'blur' },
     ],
-    context: [{ required: true, message: '請選擇邀請類型', trigger: 'change' }],
+    context: [{ required: true, message: t('inviteDialog.validation.contextRequired'), trigger: 'change' }],
 };
 
 const dialogVisible = computed({
@@ -142,12 +145,12 @@ const submitInvite = async () => {
             }
         );
 
-        ElMessage.success('邀請已送出');
+        ElMessage.success(t('inviteDialog.messages.success'));
         dialogVisible.value = false;
         resetInviteForm();
         emit('invited');
     } catch (error) {
-        const message = error?.response?.data?.message ?? '邀請送出失敗，請稍後再試';
+        const message = error?.response?.data?.message ?? t('inviteDialog.messages.failure');
         ElMessage.error(message);
     } finally {
         inviting.value = false;

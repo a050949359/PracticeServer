@@ -15,8 +15,6 @@ class VerificationEmailService
             type: 'welcome',
             name: $user->name,
             data: [
-                'message' => '你的帳號已建立完成，請先點擊下方按鈕驗證 Email。',
-                'action_label' => '驗證 Email',
                 'action_url' => URL::temporarySignedRoute(
                     'auth.verification.verify',
                     now()->addHours(24),

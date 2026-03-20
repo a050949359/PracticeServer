@@ -18,7 +18,7 @@ class EnsureStaffRole
     {
         $user = $request->user();
 
-        if (! $user || ! $user->roles()->where('is_leader', 1)->exists()) {
+        if (! $user || ! $user->teams()->whereIn('name', ['Developer', 'Maintainer', 'Staff'])->exists()) {
             return new JsonResponse([
                 'message' => 'Forbidden: staff role required',
                 'code' => 'forbidden_staff_only',

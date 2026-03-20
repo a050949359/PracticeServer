@@ -1,4 +1,73 @@
 export default {
+    common: {
+        cancel: 'Cancel',
+    },
+    inviteDialog: {
+        title: 'Send Registration Invitation',
+        form: {
+            nameLabel: 'Invitee Name',
+            namePlaceholder: 'Optional',
+            emailLabel: 'Invitee Email',
+            contextLabel: 'Invitation Type',
+            contextPlaceholder: 'Select invitation type',
+        },
+        actions: {
+            submit: 'Send Invitation',
+        },
+        contexts: {
+            userInvitedRegister: 'User Invitation',
+            staffInvitedRegister: 'Staff Invitation',
+        },
+        validation: {
+            emailRequired: 'Please enter an email',
+            emailInvalid: 'Invalid email format',
+            contextRequired: 'Please select an invitation type',
+        },
+        messages: {
+            success: 'Invitation sent',
+            failure: 'Failed to send invitation. Please try again later.',
+        },
+    },
+    authDialogs: {
+        form: {
+            nameLabel: 'Name',
+            namePlaceholder: 'Please enter your name',
+            passwordLabel: 'Password',
+            passwordPlaceholder: 'Please enter your password',
+            passwordMinPlaceholder: 'At least 8 characters',
+            passwordConfirmationLabel: 'Confirm Password',
+            passwordConfirmationPlaceholder: 'Enter your password again',
+        },
+        actions: {
+            login: 'Sign In',
+            register: 'Create Account',
+        },
+        validation: {
+            nameRequired: 'Please enter your name',
+            nameMin: 'Name must be at least 2 characters',
+            emailRequired: 'Please enter an email',
+            emailInvalid: 'Invalid email format',
+            passwordRequired: 'Please enter a password',
+            passwordMin: 'Password must be at least 8 characters',
+            passwordConfirmationRequired: 'Please confirm your password',
+            passwordMismatch: 'Passwords do not match',
+        },
+        messages: {
+            loginSuccess: 'Login successful',
+            invalidCredentials: 'Login failed. Please check your email and password.',
+            forbiddenAdminOnly: 'This account does not have admin login permission.',
+            forbiddenPublicOnly: 'This account can only sign in from admin.',
+            registerSuccess: 'Registration successful. Please sign in with your new account.',
+            registerFailure: 'Registration failed. Please try again later.',
+        },
+    },
+    profileDialog: {
+        title: 'Profile',
+        fields: {
+            name: 'Name',
+            id: 'ID',
+        },
+    },
     register: {
         nav: {
             home: 'Home',

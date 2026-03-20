@@ -11,15 +11,20 @@
                 <el-input v-model="loginForm.email" type="email" placeholder="name@example.com" />
             </el-form-item>
 
-            <el-form-item label="密碼" prop="password">
-                <el-input v-model="loginForm.password" type="password" show-password placeholder="請輸入密碼" />
+            <el-form-item :label="t('authDialogs.form.passwordLabel')" prop="password">
+                <el-input
+                    v-model="loginForm.password"
+                    type="password"
+                    show-password
+                    :placeholder="t('authDialogs.form.passwordPlaceholder')"
+                />
             </el-form-item>
         </el-form>
 
         <template #footer>
             <el-space>
-                <el-button @click="loginDialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="loggingIn" @click="submitLogin">登入</el-button>
+                <el-button @click="loginDialogVisible = false">{{ t('common.cancel') }}</el-button>
+                <el-button type="primary" :loading="loggingIn" @click="submitLogin">{{ t('authDialogs.actions.login') }}</el-button>
             </el-space>
         </template>
     </el-dialog>
@@ -32,32 +37,37 @@
         destroy-on-close
     >
         <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" label-position="top">
-            <el-form-item label="名稱" prop="name">
-                <el-input v-model="registerForm.name" placeholder="請輸入名稱" />
+            <el-form-item :label="t('authDialogs.form.nameLabel')" prop="name">
+                <el-input v-model="registerForm.name" :placeholder="t('authDialogs.form.namePlaceholder')" />
             </el-form-item>
 
             <el-form-item label="Email" prop="email">
                 <el-input v-model="registerForm.email" type="email" placeholder="name@example.com" />
             </el-form-item>
 
-            <el-form-item label="密碼" prop="password">
-                <el-input v-model="registerForm.password" type="password" show-password placeholder="至少 8 碼" />
+            <el-form-item :label="t('authDialogs.form.passwordLabel')" prop="password">
+                <el-input
+                    v-model="registerForm.password"
+                    type="password"
+                    show-password
+                    :placeholder="t('authDialogs.form.passwordMinPlaceholder')"
+                />
             </el-form-item>
 
-            <el-form-item label="確認密碼" prop="password_confirmation">
+            <el-form-item :label="t('authDialogs.form.passwordConfirmationLabel')" prop="password_confirmation">
                 <el-input
                     v-model="registerForm.password_confirmation"
                     type="password"
                     show-password
-                    placeholder="請再次輸入密碼"
+                    :placeholder="t('authDialogs.form.passwordConfirmationPlaceholder')"
                 />
             </el-form-item>
         </el-form>
 
         <template #footer>
             <el-space>
-                <el-button @click="registerDialogVisible = false">取消</el-button>
-                <el-button type="primary" :loading="registering" @click="submitRegister">建立帳號</el-button>
+                <el-button @click="registerDialogVisible = false">{{ t('common.cancel') }}</el-button>
+                <el-button type="primary" :loading="registering" @click="submitRegister">{{ t('authDialogs.actions.register') }}</el-button>
             </el-space>
         </template>
     </el-dialog>
@@ -66,6 +76,9 @@
 <script setup>
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
     loginVisible: {
@@ -83,6 +96,10 @@ const props = defineProps({
     loginTitle: {
         type: String,
         default: '登入',
+    },
+    loginAudience: {
+        type: String,
+        default: 'public',
     },
     registerTitle: {
         type: String,
@@ -111,31 +128,31 @@ const registerForm = reactive({
 
 const loginRules = {
     email: [
-        { required: true, message: '請輸入 Email', trigger: 'blur' },
-        { type: 'email', message: 'Email 格式不正確', trigger: 'blur' },
+        { required: true, message: t('authDialogs.validation.emailRequired'), trigger: 'blur' },
+        { type: 'email', message: t('authDialogs.validation.emailInvalid'), trigger: 'blur' },
     ],
-    password: [{ required: true, message: '請輸入密碼', trigger: 'blur' }],
+    password: [{ required: true, message: t('authDialogs.validation.passwordRequired'), trigger: 'blur' }],
 };
 
 const registerRules = {
     name: [
-        { required: true, message: '請輸入名稱', trigger: 'blur' },
-        { min: 2, message: '名稱至少 2 個字', trigger: 'blur' },
+        { required: true, message: t('authDialogs.validation.nameRequired'), trigger: 'blur' },
+        { min: 2, message: t('authDialogs.validation.nameMin'), trigger: 'blur' },
     ],
     email: [
-        { required: true, message: '請輸入 Email', trigger: 'blur' },
-        { type: 'email', message: 'Email 格式不正確', trigger: 'blur' },
+        { required: true, message: t('authDialogs.validation.emailRequired'), trigger: 'blur' },
+        { type: 'email', message: t('authDialogs.validation.emailInvalid'), trigger: 'blur' },
     ],
     password: [
-        { required: true, message: '請輸入密碼', trigger: 'blur' },
-        { min: 8, message: '密碼至少 8 碼', trigger: 'blur' },
+        { required: true, message: t('authDialogs.validation.passwordRequired'), trigger: 'blur' },
+        { min: 8, message: t('authDialogs.validation.passwordMin'), trigger: 'blur' },
     ],
     password_confirmation: [
-        { required: true, message: '請輸入確認密碼', trigger: 'blur' },
+        { required: true, message: t('authDialogs.validation.passwordConfirmationRequired'), trigger: 'blur' },
         {
             validator: (_rule, value, callback) => {
                 if (value !== registerForm.password) {
-                    callback(new Error('兩次密碼不一致'));
+                    callback(new Error(t('authDialogs.validation.passwordMismatch')));
                     return;
                 }
 
@@ -188,6 +205,7 @@ const submitLogin = async () => {
         const response = await axios.post('/api/auth/login', {
             email: loginForm.email,
             password: loginForm.password,
+            audience: props.loginAudience,
         });
 
         const token = response?.data?.token;
@@ -195,12 +213,27 @@ const submitLogin = async () => {
             throw new Error('Missing token');
         }
 
-        ElMessage.success('登入成功');
+        ElMessage.success(t('authDialogs.messages.loginSuccess'));
         loginDialogVisible.value = false;
         resetLoginForm();
         emit('logged-in', token);
     } catch (error) {
-        const message = error?.response?.data?.message ?? '登入失敗，請檢查帳號密碼';
+        const errorCode = error?.response?.data?.code;
+        const errorStatus = error?.response?.status;
+        const messageByCode = {
+            invalid_credentials: t('authDialogs.messages.invalidCredentials'),
+            forbidden_admin_only: t('authDialogs.messages.forbiddenAdminOnly'),
+            forbidden_public_only: t('authDialogs.messages.forbiddenPublicOnly'),
+        };
+        let message = messageByCode[errorCode] ?? null;
+
+        if (!message && errorStatus === 403) {
+            message = props.loginAudience === 'admin'
+                ? t('authDialogs.messages.forbiddenAdminOnly')
+                : t('authDialogs.messages.forbiddenPublicOnly');
+        }
+
+        message = message ?? error?.response?.data?.message ?? t('authDialogs.messages.invalidCredentials');
         ElMessage.error(message);
     } finally {
         loggingIn.value = false;
@@ -226,11 +259,11 @@ const submitRegister = async () => {
             context: props.registerContext,
         });
 
-        ElMessage.success('註冊成功，請使用新帳號登入');
+        ElMessage.success(t('authDialogs.messages.registerSuccess'));
         registerDialogVisible.value = false;
         resetRegisterForm();
     } catch (error) {
-        const message = error?.response?.data?.message ?? '註冊失敗，請稍後再試';
+        const message = error?.response?.data?.message ?? t('authDialogs.messages.registerFailure');
         ElMessage.error(message);
     } finally {
         registering.value = false;

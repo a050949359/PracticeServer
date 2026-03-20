@@ -1,14 +1,18 @@
 <template>
-    <el-dialog v-model="dialogVisible" title="個人資料" width="min(520px, 92vw)" align-center>
+    <el-dialog v-model="dialogVisible" :title="t('profileDialog.title')" width="min(520px, 92vw)" align-center>
         <el-descriptions :column="1" border>
-            <el-descriptions-item label="名稱">{{ user?.name ?? '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="t('profileDialog.fields.name')">{{ user?.name ?? '-' }}</el-descriptions-item>
             <el-descriptions-item label="Email">{{ user?.email ?? '-' }}</el-descriptions-item>
-            <el-descriptions-item label="ID">{{ user?.id ?? '-' }}</el-descriptions-item>
+            <el-descriptions-item :label="t('profileDialog.fields.id')">{{ user?.id ?? '-' }}</el-descriptions-item>
         </el-descriptions>
     </el-dialog>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 const props = defineProps({
     visible: {
         type: Boolean,

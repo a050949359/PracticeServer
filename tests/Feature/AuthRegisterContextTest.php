@@ -48,7 +48,7 @@ class AuthRegisterContextTest extends TestCase
             return $mail->type === 'welcome'
                 && $mail->recipientName === 'Public User'
                 && str_contains((string) ($mail->data['action_url'] ?? ''), '/api/auth/verify-email/')
-                && $mail->envelope()->subject === '歡迎加入 PracticeServer';
+                && $mail->envelope()->subject === __('mail.welcome.subject', ['app' => config('app.name')]);
         });
     }
 

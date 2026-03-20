@@ -27,10 +27,10 @@ class TypedEmail extends Mailable
      */
     public function envelope(): Envelope
     {
-        $content = $this->resolveContent();
+        $template = $this->resolveTemplate();
 
         return new Envelope(
-            subject: $content['subject'],
+            subject: $template['subject'],
         );
     }
 
@@ -39,11 +39,11 @@ class TypedEmail extends Mailable
      */
     public function content(): Content
     {
-        $content = $this->resolveContent();
+        $template = $this->resolveTemplate();
 
         return new Content(
-            view: 'emails.typed',
-            with: $content,
+            view: $template['view'],
+            with: $template['with'],
         );
     }
 
@@ -57,24 +57,42 @@ class TypedEmail extends Mailable
         return [];
     }
 
-    private function resolveContent(): array
+    /**
+     * @return array{subject:string,view:string,with:array<string,mixed>}
+     */
+    private function resolveTemplate(): array
     {
-        $recipientName = $this->recipientName ?: '使用者';
+        $recipientName = $this->recipientName ?: __('mail.common.default_recipient_name');
+        $appName = config('app.name');
 
         return match ($this->type) {
             'welcome' => [
-                'subject' => '歡迎加入 PracticeServer',
-                'heading' => "歡迎你，{$recipientName}",
-                'intro' => $this->data['message'] ?? '你的帳號已建立完成，請先完成 Email 驗證。',
-                'actionLabel' => $this->data['action_label'] ?? null,
-                'actionUrl' => $this->data['action_url'] ?? null,
+                'subject' => __('mail.welcome.subject', ['app' => $appName]),
+                'view' => 'emails.templates.typed_email',
+                'with' => [
+                    'subject' => __('mail.welcome.subject', ['app' => $appName]),
+                    'heading' => __('mail.welcome.heading', ['name' => $recipientName]),
+                    'intro' => $this->data['message'] ?? __('mail.welcome.intro'),
+                    'actionLabel' => $this->data['action_label'] ?? __('mail.welcome.action_label'),
+                    'actionUrl' => $this->data['action_url'] ?? null,
+                    'actionHint' => $this->data['action_hint'] ?? __('mail.common.action_hint'),
+                    'buttonBackground' => '#22d3ee',
+                    'buttonTextColor' => '#082f49',
+                ],
             ],
             'registration_invite' => [
-                'subject' => 'PracticeServer 註冊邀請',
-                'heading' => '你收到一封註冊邀請',
-                'intro' => $this->data['message'] ?? '請透過下方連結完成註冊。',
-                'actionLabel' => $this->data['action_label'] ?? '前往註冊',
-                'actionUrl' => $this->data['action_url'] ?? null,
+                'subject' => __('mail.registration_invite.subject', ['app' => $appName]),
+                'view' => 'emails.templates.typed_email',
+                'with' => [
+                    'subject' => __('mail.registration_invite.subject', ['app' => $appName]),
+                    'heading' => __('mail.registration_invite.heading'),
+                    'intro' => $this->data['message'] ?? __('mail.registration_invite.intro'),
+                    'actionLabel' => $this->data['action_label'] ?? __('mail.registration_invite.action_label'),
+                    'actionUrl' => $this->data['action_url'] ?? null,
+                    'actionHint' => $this->data['action_hint'] ?? __('mail.common.action_hint'),
+                    'buttonBackground' => '#2563eb',
+                    'buttonTextColor' => '#ffffff',
+                ],
             ],
             default => throw new InvalidArgumentException("Unsupported email type [{$this->type}]"),
         };

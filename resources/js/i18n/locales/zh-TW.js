@@ -1,4 +1,73 @@
 export default {
+    common: {
+        cancel: '取消',
+    },
+    inviteDialog: {
+        title: '發送註冊邀請',
+        form: {
+            nameLabel: '受邀者名稱',
+            namePlaceholder: '可留空',
+            emailLabel: '受邀者 Email',
+            contextLabel: '邀請類型',
+            contextPlaceholder: '選擇邀請類型',
+        },
+        actions: {
+            submit: '送出邀請',
+        },
+        contexts: {
+            userInvitedRegister: '一般使用者邀請',
+            staffInvitedRegister: '員工邀請',
+        },
+        validation: {
+            emailRequired: '請輸入 Email',
+            emailInvalid: 'Email 格式不正確',
+            contextRequired: '請選擇邀請類型',
+        },
+        messages: {
+            success: '邀請已送出',
+            failure: '邀請送出失敗，請稍後再試',
+        },
+    },
+    authDialogs: {
+        form: {
+            nameLabel: '名稱',
+            namePlaceholder: '請輸入名稱',
+            passwordLabel: '密碼',
+            passwordPlaceholder: '請輸入密碼',
+            passwordMinPlaceholder: '至少 8 碼',
+            passwordConfirmationLabel: '確認密碼',
+            passwordConfirmationPlaceholder: '請再次輸入密碼',
+        },
+        actions: {
+            login: '登入',
+            register: '建立帳號',
+        },
+        validation: {
+            nameRequired: '請輸入名稱',
+            nameMin: '名稱至少 2 個字',
+            emailRequired: '請輸入 Email',
+            emailInvalid: 'Email 格式不正確',
+            passwordRequired: '請輸入密碼',
+            passwordMin: '密碼至少 8 碼',
+            passwordConfirmationRequired: '請輸入確認密碼',
+            passwordMismatch: '兩次密碼不一致',
+        },
+        messages: {
+            loginSuccess: '登入成功',
+            invalidCredentials: '登入失敗，請檢查帳號密碼',
+            forbiddenAdminOnly: '此帳號沒有後台登入權限',
+            forbiddenPublicOnly: '此帳號僅可從後台登入',
+            registerSuccess: '註冊成功，請使用新帳號登入',
+            registerFailure: '註冊失敗，請稍後再試',
+        },
+    },
+    profileDialog: {
+        title: '個人資料',
+        fields: {
+            name: '名稱',
+            id: 'ID',
+        },
+    },
     register: {
         nav: {
             home: '回首頁',

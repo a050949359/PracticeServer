@@ -38,8 +38,6 @@ class InvitationService
             type: 'registration_invite',
             name: $invitation->name,
             data: [
-                'message' => '請點擊連結完成你的註冊。',
-                'action_label' => '完成註冊',
                 'action_url' => sprintf(
                     '%s/register?token=%s',
                     rtrim(config('app.url'), '/'),

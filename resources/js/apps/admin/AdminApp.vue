@@ -44,6 +44,7 @@
         v-model:login-visible="loginDialogVisible"
         v-model:register-visible="registerDialogVisible"
         login-title="管理者登入"
+        login-audience="admin"
         register-title="建立帳號"
         register-context="staff_self_register"
         @logged-in="handleLoggedIn"
