@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'vertex_ai' => [
+        'credentials_path' => env('GOOGLE_APPLICATION_CREDENTIALS'),
+        'project_id' => env('VERTEX_AI_PROJECT_ID'),
+        'location' => env('VERTEX_AI_LOCATION', 'us-central1'),
+        'model' => env('VERTEX_AI_MODEL', 'gemini-2.0-flash-001'),
+    ],
+
 ];

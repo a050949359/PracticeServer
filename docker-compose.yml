@@ -1,0 +1,73 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: practice-app
+    working_dir: /var/www/html
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      APP_KEY: ${APP_KEY:-}
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: practice_server
+      DB_USERNAME: practice_user
+      DB_PASSWORD: practice_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    container_name: practice-mysql
+    environment:
+      MYSQL_DATABASE: practice_server
+      MYSQL_USER: practice_user
+      MYSQL_PASSWORD: practice_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: practice-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: practice-swagger-ui
+    ports:
+      - "8086:8080"
+    environment:
+      SWAGGER_JSON: /usr/share/nginx/html/docs/api-docs.json
+    volumes:
+      - ./docker/swagger/docs:/usr/share/nginx/html/docs:ro
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:

@@ -141,3 +141,83 @@
 .spa-actions-row {
     margin-top: 1.25rem;
 }
+
+.spa-chat-panel {
+    min-height: 42rem;
+}
+
+.spa-chat-header {
+    justify-content: space-between;
+}
+
+.spa-chat-history {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 24rem;
+    max-height: 30rem;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.spa-chat-message {
+    padding: 1rem 1.1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.spa-chat-message-user {
+    margin-left: auto;
+    max-width: 85%;
+    background: rgba(34, 211, 238, 0.16);
+}
+
+.spa-chat-message-model {
+    max-width: 90%;
+    background: rgba(15, 23, 42, 0.88);
+}
+
+.spa-chat-role {
+    margin-bottom: 0.5rem;
+    color: #a5f3fc;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.spa-chat-text {
+    margin: 0;
+    color: #e2e8f0;
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.spa-chat-form {
+    margin-top: 1.5rem;
+}
+
+.spa-chat-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.85rem;
+    gap: 1rem;
+}
+
+.spa-chat-hint {
+    color: #94a3b8;
+    font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+    .spa-chat-message-user,
+    .spa-chat-message-model {
+        max-width: 100%;
+    }
+
+    .spa-chat-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

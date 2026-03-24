@@ -18,7 +18,7 @@
                     "Auth"
                 ],
                 "summary": "Login with email and password",
-                "operationId": "535ffeda4b78916efd658b2844ea897a",
+                "operationId": "93854977962cd31483eb1dac754632bd",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -64,7 +64,7 @@
                     "Auth"
                 ],
                 "summary": "Get current user profile",
-                "operationId": "1537d2a532022d0974e4cd2d83c6a38f",
+                "operationId": "3fe53971d7b64d2ed4ceffcb9110569f",
                 "responses": {
                     "200": {
                         "description": "Current user"
@@ -83,7 +83,7 @@
                     "Auth"
                 ],
                 "summary": "Request password reset email",
-                "operationId": "d9cc70f609b0bb19f5707717a10f266c",
+                "operationId": "1181b1046fb13ebbbf2244bd3d514446",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -116,7 +116,7 @@
                     "Auth"
                 ],
                 "summary": "Reset password using token",
-                "operationId": "aee8cc4d69b9a7e99c0472ebcbf0d2aa",
+                "operationId": "464550cd0e0937a93f16dd72f9ed3ca0",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -171,7 +171,7 @@
                     "Invitation"
                 ],
                 "summary": "Create registration invitation",
-                "operationId": "dd47cfe6426a90349d8ae535d829375e",
+                "operationId": "26d82d6de830691a2bcc46ff3bb2cec5",
                 "requestBody": {
                     "required": true,
                     "content": {

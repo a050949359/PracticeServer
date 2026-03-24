@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\Google\Vertex\VertexChatController;
 use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -45,4 +46,8 @@ Route::middleware(['auth:sanctum', 'staff'])->prefix('admin')->group(function ()
 Route::prefix('practice')->group(function () {
     Route::post('echo', [PracticeController::class, 'echoText']);
     Route::post('sum', [PracticeController::class, 'sumValues']);
+});
+
+Route::prefix('google/vertex')->group(function () {
+    Route::post('chat', [VertexChatController::class, 'store']);
 });
