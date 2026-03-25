@@ -9,6 +9,25 @@ export default {
         },
     },
     navbar: {
+        aria: {
+            publicNavigation: 'Public navigation',
+            vertexNavigation: 'Vertex navigation',
+            authActions: 'Account actions',
+            registerNavigation: 'Register navigation',
+        },
+        actions: {
+            login: 'Sign In',
+            register: 'Sign Up',
+            profile: 'Profile',
+            invite: 'Invite',
+            logout: 'Sign Out',
+        },
+        vertex: {
+            label: 'Vertex AI',
+            chat: 'Chat',
+            image: 'Image',
+            detect: 'OCR',
+        },
         userStatus: {
             unverified: 'Unverified',
         },

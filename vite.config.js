@@ -13,7 +13,7 @@ export default defineConfig({
     plugins: [
         vue(),
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: ['resources/js/public.js', 'resources/js/admin.js', 'resources/js/register.js'],
             refresh: true,
         }),
         AutoImport({

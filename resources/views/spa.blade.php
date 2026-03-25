@@ -8,10 +8,13 @@
         <title>{{ config('app.name', 'Laravel') }}</title>
         @php
             $hasViteAssets = file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot'));
+            $viteEntry = request()->is('admin*')
+                ? 'resources/js/admin.js'
+                : (request()->is('register*') ? 'resources/js/register.js' : 'resources/js/public.js');
         @endphp
 
         @if ($hasViteAssets)
-            @vite(['resources/css/app.css', 'resources/js/app.js'])
+            @vite([$viteEntry])
         @else
             <style>
                 body {
@@ -136,7 +139,7 @@
                                 <span class="badge">CSR Mode</span>
                                 <h1>這是前端渲染頁面</h1>
                                 <p>目前沒有載入 Vite 資產，所以使用 fallback 的瀏覽器端渲染。</p>
-                                <p>啟動 <strong>npm run dev</strong> 或執行 <strong>npm run build</strong> 後，會改用 resources/js/app.js 的正式頁面。</p>
+                                <p>啟動 <strong>npm run dev</strong> 或執行 <strong>npm run build</strong> 後，會改用對應區域的正式前端入口。</p>
                             </section>
                         </main>
                     `;

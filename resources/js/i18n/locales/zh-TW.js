@@ -9,6 +9,25 @@ export default {
         },
     },
     navbar: {
+        aria: {
+            publicNavigation: '前台導覽',
+            vertexNavigation: 'Vertex 導覽',
+            authActions: '帳號操作',
+            registerNavigation: '註冊導覽',
+        },
+        actions: {
+            login: '登入',
+            register: '註冊',
+            profile: '個人資料',
+            invite: '邀請',
+            logout: '登出',
+        },
+        vertex: {
+            label: 'Vertex AI',
+            chat: '對話',
+            image: '影像',
+            detect: 'OCR',
+        },
         userStatus: {
             unverified: '未驗證',
         },

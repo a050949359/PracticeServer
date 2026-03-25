@@ -3,7 +3,7 @@
         <app-navbar
             brand-href="/admin"
             brand-label="PracticeServer Admin"
-            nav-label="auth actions"
+            :nav-label="t('navbar.aria.authActions')"
             :actions="navbarActions"
             :authenticated="isAuthenticated"
             :user-status-label="userStatusLabel"
@@ -73,37 +73,23 @@ import AppNavbar from '../../components/AppNavbar.vue';
 import AuthDialogs from '../../components/AuthDialogs.vue';
 import InviteDialog from '../../components/InviteDialog.vue';
 import ProfileDialog from '../../components/ProfileDialog.vue';
+import {
+    AUTH_MENU_ITEM_KEYS,
+    GUEST_NAVBAR_ACTION_KEYS,
+    buildAuthMenuItems,
+    buildGuestNavbarActions,
+} from './navbarConfig';
 import { useAuthSession } from '../../composables/useAuthSession';
 
 const { t } = useI18n();
 
-const guestNavbarActions = [
-    {
-        key: 'login',
-        label: '登入',
-        variant: 'ghost',
-    },
-    {
-        key: 'register',
-        label: '註冊',
-        variant: 'primary',
-    },
-];
+const guestNavbarActions = computed(() => {
+    return buildGuestNavbarActions(t);
+});
 
-const authMenuItems = [
-    {
-        key: 'profile',
-        label: '個人資料',
-    },
-    {
-        key: 'invite',
-        label: '邀請',
-    },
-    {
-        key: 'logout',
-        label: '登出',
-    },
-];
+const authMenuItems = computed(() => {
+    return buildAuthMenuItems(t);
+});
 
 const {
     currentUser,
@@ -122,7 +108,7 @@ const {
     useAuthSession();
 
 const navbarActions = computed(() => {
-    return isAuthenticated.value ? [] : guestNavbarActions;
+    return isAuthenticated.value ? [] : guestNavbarActions.value;
 });
 
 const userStatusLabel = computed(() => {
@@ -183,23 +169,23 @@ const submitChangePassword = async (payload) => {
 };
 
 const handleNavbarAction = (actionKey) => {
-    if (actionKey === 'login') {
+    if (actionKey === GUEST_NAVBAR_ACTION_KEYS.login) {
         openLoginDialog();
     }
 
-    if (actionKey === 'register') {
+    if (actionKey === GUEST_NAVBAR_ACTION_KEYS.register) {
         openRegisterDialog();
     }
 
-    if (actionKey === 'profile') {
+    if (actionKey === AUTH_MENU_ITEM_KEYS.profile) {
         openProfileDialog();
     }
 
-    if (actionKey === 'invite') {
+    if (actionKey === AUTH_MENU_ITEM_KEYS.invite) {
         openInviteDialog();
     }
 
-    if (actionKey === 'logout') {
+    if (actionKey === AUTH_MENU_ITEM_KEYS.logout) {
         submitLogout();
     }
 };

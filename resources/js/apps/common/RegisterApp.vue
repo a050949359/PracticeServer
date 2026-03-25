@@ -3,7 +3,7 @@
         <app-navbar
             brand-href="/"
             brand-label="PracticeServer"
-            nav-label="register navigation"
+            :nav-label="t('navbar.aria.registerNavigation')"
             :actions="topActions"
         />
 

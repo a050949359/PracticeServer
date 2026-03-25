@@ -3,6 +3,8 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\Google\Vertex\VertexChatController;
+use App\Http\Controllers\Google\Vertex\VertexDetectController;
+use App\Http\Controllers\Google\Vertex\VertexImageController;
 use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -50,4 +52,7 @@ Route::prefix('practice')->group(function () {
 
 Route::prefix('google/vertex')->group(function () {
     Route::post('chat', [VertexChatController::class, 'store']);
+    Route::post('image', [VertexImageController::class, 'store']);
+    Route::post('image/detect', [VertexDetectController::class, 'store']);
+    Route::get('image/detect/history', [VertexDetectController::class, 'history']);
 });
