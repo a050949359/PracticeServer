@@ -6,7 +6,9 @@ use App\Models\VertexOcrResult;
 use Google\Auth\Credentials\ServiceAccountCredentials;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use JsonException;
 use RuntimeException;
 
 class VertexDetectService
@@ -137,6 +139,7 @@ class VertexDetectService
         }
 
         $storedPath = $this->storeImage($image);
+        $rawResponsePath = $this->storeRawResponse($ocrPayload);
 
         $record = VertexOcrResult::query()->create([
             'image_name' => $image->getClientOriginalName(),
@@ -146,7 +149,7 @@ class VertexDetectService
             'types' => $featureTypes,
             'text' => $fullText ?? '',
             'provider' => 'cloud_vision_ocr',
-            'raw_response' => $ocrPayload,
+            'raw_response' => $rawResponsePath,
         ]);
 
         return [
@@ -158,6 +161,7 @@ class VertexDetectService
             'provider' => 'cloud_vision_ocr',
             'types' => $featureTypes,
             'raw_response' => $ocrPayload,
+            'raw_response_path' => $rawResponsePath,
             'record' => [
                 'id' => $record->id,
                 'image_name' => $record->image_name,
@@ -177,6 +181,28 @@ class VertexDetectService
 
         if (! is_string($storedPath) || $storedPath === '') {
             throw new RuntimeException('Failed to store OCR image file.');
+        }
+
+        return $storedPath;
+    }
+
+    private function storeRawResponse(array $ocrPayload): string
+    {
+        try {
+            $rawResponseContent = json_encode(
+                $ocrPayload,
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+            );
+        } catch (JsonException $exception) {
+            throw new RuntimeException('Failed to encode OCR raw response.', 0, $exception);
+        }
+
+        $fileName = sprintf('%s_%s.json', now()->format('Ymd_His'), Str::uuid());
+        $storedPath = 'vertex-ocr-responses/'.$fileName;
+        $stored = Storage::disk('local')->put($storedPath, $rawResponseContent);
+
+        if (! $stored) {
+            throw new RuntimeException('Failed to store OCR raw response file.');
         }
 
         return $storedPath;

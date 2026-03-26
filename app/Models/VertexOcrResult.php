@@ -31,7 +31,6 @@ class VertexOcrResult extends Model
     {
         return [
             'types' => 'array',
-            'raw_response' => 'array',
         ];
     }
 }

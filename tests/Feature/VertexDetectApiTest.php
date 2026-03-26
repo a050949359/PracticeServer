@@ -214,4 +214,14 @@ class VertexDetectApiTest extends TestCase
                 ],
             ]);
     }
+
+    #[Test]
+    public function test_vertex_ocr_result_stores_raw_response_path(): void
+    {
+        $record = VertexOcrResult::factory()->create();
+
+        $this->assertIsString($record->raw_response);
+        $this->assertStringStartsWith('vertex-ocr-responses/', $record->raw_response);
+        $this->assertStringEndsWith('.json', $record->raw_response);
+    }
 }

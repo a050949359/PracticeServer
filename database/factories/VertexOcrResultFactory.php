@@ -24,11 +24,7 @@ class VertexOcrResultFactory extends Factory
             'types' => ['DOCUMENT_TEXT_DETECTION'],
             'text' => fake()->sentence(8),
             'provider' => 'cloud_vision_ocr',
-            'raw_response' => [
-                'fullTextAnnotation' => [
-                    'text' => fake()->sentence(8),
-                ],
-            ],
+            'raw_response' => 'vertex-ocr-responses/'.fake()->uuid().'.json',
         ];
     }
 }
