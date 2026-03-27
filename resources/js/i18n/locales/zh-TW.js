@@ -12,6 +12,7 @@ export default {
         aria: {
             publicNavigation: '前台導覽',
             vertexNavigation: 'Vertex 導覽',
+            googleNavigation: 'Google 導覽',
             authActions: '帳號操作',
             registerNavigation: '註冊導覽',
         },
@@ -27,6 +28,14 @@ export default {
             chat: '對話',
             image: '影像',
             detect: 'OCR',
+        },
+        google: {
+            label: 'Google',
+            drive: 'Drive',
+        },
+        queue: {
+            label: 'Queue',
+            csvExport: 'CSV 匯出',
         },
         userStatus: {
             unverified: '未驗證',
@@ -232,6 +241,43 @@ export default {
                 passwordRequired: '請輸入新密碼',
                 passwordConfirmationRequired: '請輸入確認密碼',
                 passwordMismatch: '兩次密碼不一致',
+            },
+        },
+    },
+    pages: {
+        admin: {
+            home: {
+                title: '管理後台',
+                breadcrumb: 'Admin',
+            },
+            drive: {
+                title: 'Google Drive',
+                breadcrumb: 'Drive',
+            },
+            csvExport: {
+                title: 'CSV 匯出',
+                breadcrumb: 'CSV 匯出',
+            },
+        },
+        public: {
+            home: {
+                title: '前台首頁',
+                breadcrumb: 'Home',
+            },
+            vertex: {
+                group: 'Vertex AI',
+                chat: {
+                    title: 'Vertex 對話',
+                    breadcrumb: '對話',
+                },
+                image: {
+                    title: 'Vertex 影像',
+                    breadcrumb: '影像',
+                },
+                detect: {
+                    title: 'Vertex OCR',
+                    breadcrumb: 'OCR',
+                },
             },
         },
     },

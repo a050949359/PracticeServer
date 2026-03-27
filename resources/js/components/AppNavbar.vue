@@ -7,7 +7,7 @@
                 <nav v-if="links.length > 0 || dropdownMenus.length > 0" class="spa-nav-left" :aria-label="leftNavLabel">
                     <template v-for="menu in dropdownMenus" :key="menu.key">
                         <el-dropdown trigger="hover" popper-class="spa-nav-dropdown-popper">
-                            <button class="spa-nav-menu-trigger" type="button">
+                            <button class="spa-nav-menu-trigger" :class="{ 'is-active': isMenuActive(menu) }" type="button">
                                 <span>{{ menu.label }}</span>
                             </button>
 
@@ -17,6 +17,7 @@
                                         <a
                                             :href="item.to ?? item.href"
                                             class="spa-dropdown-link"
+                                            :class="{ 'is-active': isItemActive(item) }"
                                             @click="handleNavigate($event, item.to ?? item.href)"
                                         >
                                             {{ item.label }}
@@ -31,7 +32,10 @@
                         <a
                             :href="link.to ?? link.href"
                             class="spa-btn"
-                            :class="link.variant === 'primary' ? 'spa-btn-primary' : 'spa-btn-ghost'"
+                            :class="[
+                                link.variant === 'primary' ? 'spa-btn-primary' : 'spa-btn-ghost',
+                                { 'is-active': isItemActive(link) },
+                            ]"
                             @click="handleNavigate($event, link.to ?? link.href)"
                         >
                             {{ link.label }}
@@ -136,6 +140,10 @@ const props = defineProps({
         type: Function,
         default: null,
     },
+    currentPath: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits(['action']);
@@ -151,5 +159,24 @@ const handleNavigate = (event, target) => {
 
     event.preventDefault();
     props.navigate(target);
+};
+
+const normalizeTarget = (target) => {
+    if (!target) {
+        return '';
+    }
+
+    return target.replace(/\/$/, '') || '/';
+};
+
+const isItemActive = (item) => {
+    const target = normalizeTarget(item?.to ?? item?.href ?? '');
+    const currentPath = normalizeTarget(props.currentPath);
+
+    return target !== '' && target === currentPath;
+};
+
+const isMenuActive = (menu) => {
+    return Array.isArray(menu?.items) && menu.items.some((item) => isItemActive(item));
 };
 </script>

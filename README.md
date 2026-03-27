@@ -21,6 +21,7 @@ Laravel 12 專案，包含 Sanctum 驗證、Invitation 流程、角色權限管�
 - npm 10+
 - MySQL（若使用 MySQL 環境）
 - Redis（若啟用快取/佇列）
+- RabbitMQ（若使用 AMQP 佇列）
 
 ### PHP Extension
 
@@ -150,6 +151,44 @@ composer run dev
 - Log Viewer（Pail）
 - Vite Dev Server
 
+## RabbitMQ Queue 設定
+
+專案已內建 RabbitMQ queue driver，可透過 `.env` 切換為 RabbitMQ：
+
+```dotenv
+QUEUE_CONNECTION=rabbitmq
+RABBITMQ_HOST=127.0.0.1
+RABBITMQ_PORT=5672
+RABBITMQ_USER=guest
+RABBITMQ_PASSWORD=guest
+RABBITMQ_VHOST=/
+RABBITMQ_QUEUE=default
+```
+
+若使用專案提供的 Docker Compose，可直接啟動 RabbitMQ：
+
+```bash
+docker compose up -d rabbitmq
+```
+
+RabbitMQ 管理介面預設為：
+
+```text
+http://localhost:15672
+```
+
+本機開發可繼續用 Laravel 的 worker：
+
+```bash
+php artisan queue:work rabbitmq --queue=default
+```
+
+若要使用 RabbitMQ 套件提供的 consumer：
+
+```bash
+php artisan rabbitmq:consume --queue=default
+```
+
 ### 僅啟動 API 服務
 
 ```bash
@@ -173,9 +212,21 @@ php artisan test --compact
 - 使用者註冊/登入/登出
 - 邀請註冊流程（Invitation）
 - 使用 spatie/laravel-permission 的角色與權限管理
+- Google OAuth（使用者授權）
+- Google Drive（staff）檔案上傳、列表、下載、刪除
 - Vertex AI 對話、影像分析、OCR（文字偵測與物件座標）與辨識歷史
+- RabbitMQ queue driver 與背景工作處理
+- CSV 匯出任務（staff）：
+  - 建立匯出任務 API
+  - 檔名格式 yyyymmdd_HHMMSS.csv
+  - 每 5 秒寫入 1 行假資料（queue job 鏈式執行）
+  - 任務列表、單筆狀態、下載 API
+- Queue 狀態監控（staff）：
+  - API：/api/admin/queue/stats
+  - 指標：ready / unacked / total / consumers
+  - Admin CSV 匯出頁 queue 進度條
 - API 文件（l5-swagger / OpenAPI）
-- 詳細技術變更與 API 範例請見 CHANGELOG_2026-03-25.md
+- 詳細技術變更與 API 範例請見 CHANGELOG_2026-03-25.md、CHANGELOG_2026-03-27.md
 
 ## Docker 狀態
 

@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Controllers\Admin\CsvExportController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\Google\Drive\DriveUploadController;
+use App\Http\Controllers\Google\Oauth\GoogleOAuthController;
 use App\Http\Controllers\Google\Vertex\VertexChatController;
 use App\Http\Controllers\Google\Vertex\VertexDetectController;
 use App\Http\Controllers\Google\Vertex\VertexImageController;
@@ -35,6 +38,15 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
 });
 
 Route::middleware(['auth:sanctum', 'staff'])->prefix('admin')->group(function () {
+    Route::get('queue/stats', [CsvExportController::class, 'queueStats']);
+
+    Route::prefix('csv-exports')->group(function () {
+        Route::get('/', [CsvExportController::class, 'index']);
+        Route::post('/', [CsvExportController::class, 'store']);
+        Route::get('{csvExportTask}', [CsvExportController::class, 'show'])->whereNumber('csvExportTask');
+        Route::get('{csvExportTask}/download', [CsvExportController::class, 'download'])->whereNumber('csvExportTask');
+    });
+
     Route::prefix('v1')->group(function () {
         Route::post('invitations', [InvitationController::class, 'store']);
 
@@ -55,4 +67,23 @@ Route::prefix('google/vertex')->group(function () {
     Route::post('image', [VertexImageController::class, 'store']);
     Route::post('image/detect', [VertexDetectController::class, 'store']);
     Route::get('image/detect/history', [VertexDetectController::class, 'history']);
+});
+
+Route::middleware(['auth:sanctum', 'staff'])->prefix('google/drive')->group(function () {
+    Route::post('upload', [DriveUploadController::class, 'store']);
+    Route::get('files', [DriveUploadController::class, 'index']);
+    Route::get('files/{driveFileId}/download', [DriveUploadController::class, 'download'])->where('driveFileId', '[A-Za-z0-9_-]+');
+    Route::delete('files/{driveFileId}', [DriveUploadController::class, 'destroy'])->where('driveFileId', '[A-Za-z0-9_-]+');
+});
+
+Route::middleware(['auth:sanctum', 'staff'])->prefix('google/oauth')->group(function () {
+    Route::get('authorize-url', [GoogleOAuthController::class, 'authorizeUrl']);
+    Route::get('status', [GoogleOAuthController::class, 'status']);
+    Route::delete('disconnect', [GoogleOAuthController::class, 'disconnect']);
+});
+
+Route::middleware(['auth:sanctum', 'staff'])->prefix('google/drive/oauth')->group(function () {
+    Route::get('authorize-url', [GoogleOAuthController::class, 'authorizeUrl']);
+    Route::get('status', [GoogleOAuthController::class, 'status']);
+    Route::delete('disconnect', [GoogleOAuthController::class, 'disconnect']);
 });

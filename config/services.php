@@ -42,4 +42,13 @@ return [
         'model' => env('VERTEX_AI_MODEL', 'gemini-2.0-flash-001'),
     ],
 
+    'google_drive' => [
+        'credentials_path' => env('GOOGLE_DRIVE_CREDENTIALS', env('GOOGLE_APPLICATION_CREDENTIALS')),
+        'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
+        'scope' => env('GOOGLE_DRIVE_SCOPE', 'openid email profile https://www.googleapis.com/auth/drive.file'),
+        'oauth_client_id' => env('GOOGLE_DRIVE_OAUTH_CLIENT_ID'),
+        'oauth_client_secret' => env('GOOGLE_DRIVE_OAUTH_CLIENT_SECRET'),
+        'oauth_redirect_uri' => env('GOOGLE_DRIVE_OAUTH_REDIRECT_URI'),
+    ],
+
 ];

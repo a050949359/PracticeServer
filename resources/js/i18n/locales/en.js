@@ -12,6 +12,7 @@ export default {
         aria: {
             publicNavigation: 'Public navigation',
             vertexNavigation: 'Vertex navigation',
+            googleNavigation: 'Google navigation',
             authActions: 'Account actions',
             registerNavigation: 'Register navigation',
         },
@@ -27,6 +28,14 @@ export default {
             chat: 'Chat',
             image: 'Image',
             detect: 'OCR',
+        },
+        google: {
+            label: 'Google',
+            drive: 'Drive',
+        },
+        queue: {
+            label: 'Queue',
+            csvExport: 'CSV Export',
         },
         userStatus: {
             unverified: 'Unverified',
@@ -232,6 +241,43 @@ export default {
                 passwordRequired: 'Please enter a new password',
                 passwordConfirmationRequired: 'Please confirm your password',
                 passwordMismatch: 'Passwords do not match',
+            },
+        },
+    },
+    pages: {
+        admin: {
+            home: {
+                title: 'Admin Dashboard',
+                breadcrumb: 'Admin',
+            },
+            drive: {
+                title: 'Google Drive',
+                breadcrumb: 'Drive',
+            },
+            csvExport: {
+                title: 'CSV Export',
+                breadcrumb: 'CSV Export',
+            },
+        },
+        public: {
+            home: {
+                title: 'Home',
+                breadcrumb: 'Home',
+            },
+            vertex: {
+                group: 'Vertex AI',
+                chat: {
+                    title: 'Vertex Chat',
+                    breadcrumb: 'Chat',
+                },
+                image: {
+                    title: 'Vertex Image',
+                    breadcrumb: 'Image',
+                },
+                detect: {
+                    title: 'Vertex OCR',
+                    breadcrumb: 'OCR',
+                },
             },
         },
     },

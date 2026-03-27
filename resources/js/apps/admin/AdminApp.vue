@@ -4,39 +4,31 @@
             brand-href="/admin"
             brand-label="PracticeServer Admin"
             :nav-label="t('navbar.aria.authActions')"
+            :left-nav-label="t('navbar.aria.googleNavigation')"
+            :dropdown-menus="adminDropdownMenus"
             :actions="navbarActions"
             :authenticated="isAuthenticated"
             :user-status-label="userStatusLabel"
             :user-label="userLabel"
             :menu-items="authMenuItems"
+            :current-path="route.path"
+            :navigate="navigate"
             @action="handleNavbarAction"
         />
 
         <section class="spa-wrap">
             <div class="spa-content">
-                <el-card class="spa-panel" shadow="hover">
-                    <template #header>
-                        <div class="spa-panel-header">
-                            <el-tag effect="dark" type="info">Admin Area</el-tag>
-                            <span class="spa-panel-title">Element Plus 已接上</span>
-                        </div>
-                    </template>
+                <div class="spa-page-head">
+                    <p class="spa-page-breadcrumb">{{ pageBreadcrumb }}</p>
+                    <h1 class="spa-page-title">{{ pageTitle }}</h1>
+                </div>
 
-                    <h1 class="spa-title">這是管理後台 SPA</h1>
-                    <p class="spa-description">
-                        目前既有功能先歸在 admin 區，登入與註冊以中間彈窗方式操作。
-                    </p>
-
-                    <el-space class="spa-actions-row" wrap>
-                        <el-button v-if="!isAuthenticated" plain @click="openLoginDialog">立即登入</el-button>
-                        <el-button v-if="!isAuthenticated" type="primary" @click="openRegisterDialog"
-                            >立即註冊</el-button
-                        >
-                        <el-button v-if="isAuthenticated" plain @click="openProfileDialog">個人資料</el-button>
-                        <el-button v-if="isAuthenticated" type="primary" @click="openInviteDialog">發送邀請</el-button>
-                        <el-button plain>查看更多</el-button>
-                    </el-space>
-                </el-card>
+                <router-view v-slot="{ Component }">
+                    <component
+                        :is="Component"
+                        v-bind="currentPageProps"
+                    />
+                </router-view>
             </div>
         </section>
     </main>
@@ -69,6 +61,7 @@
 <script setup>
 import { ElMessage } from 'element-plus';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 import AppNavbar from '../../components/AppNavbar.vue';
 import AuthDialogs from '../../components/AuthDialogs.vue';
 import InviteDialog from '../../components/InviteDialog.vue';
@@ -76,12 +69,19 @@ import ProfileDialog from '../../components/ProfileDialog.vue';
 import {
     AUTH_MENU_ITEM_KEYS,
     GUEST_NAVBAR_ACTION_KEYS,
+    buildAdminDropdownMenus,
     buildAuthMenuItems,
     buildGuestNavbarActions,
 } from './navbarConfig';
 import { useAuthSession } from '../../composables/useAuthSession';
 
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
+
+const navigate = (target) => {
+    router.push(target);
+};
 
 const guestNavbarActions = computed(() => {
     return buildGuestNavbarActions(t);
@@ -89,6 +89,22 @@ const guestNavbarActions = computed(() => {
 
 const authMenuItems = computed(() => {
     return buildAuthMenuItems(t);
+});
+
+const adminDropdownMenus = computed(() => {
+    return buildAdminDropdownMenus(t);
+});
+
+const pageTitle = computed(() => {
+    const titleKey = route.meta?.titleKey;
+
+    return typeof titleKey === 'string' ? t(titleKey) : 'Admin';
+});
+
+const pageBreadcrumb = computed(() => {
+    const breadcrumbKeys = Array.isArray(route.meta?.breadcrumbKeys) ? route.meta.breadcrumbKeys : [];
+
+    return breadcrumbKeys.map((key) => t(key)).join(' / ');
 });
 
 const {
@@ -124,6 +140,22 @@ const registerDialogVisible = ref(false);
 const profileDialogVisible = ref(false);
 const inviteDialogVisible = ref(false);
 
+const currentPageProps = computed(() => {
+    if (route.name !== 'admin.home') {
+        return {};
+    }
+
+    return {
+        isAuthenticated: isAuthenticated.value,
+        openLoginDialog,
+        openRegisterDialog,
+        openProfileDialog,
+        openInviteDialog,
+        goDrivePage,
+        goCsvExportPage,
+    };
+});
+
 const openLoginDialog = () => {
     loginDialogVisible.value = true;
 };
@@ -139,6 +171,14 @@ const openProfileDialog = async () => {
 
 const openInviteDialog = () => {
     inviteDialogVisible.value = true;
+};
+
+const goDrivePage = () => {
+    router.push('/admin/google/drive');
+};
+
+const goCsvExportPage = () => {
+    router.push('/admin/exports/csv');
 };
 
 const submitProfile = async (payload) => {
@@ -211,5 +251,9 @@ onMounted(async () => {
         ElMessage.error('你沒有後台權限，將導回首頁');
         window.location.href = '/';
     }
+});
+
+watchEffect(() => {
+    document.title = `${pageTitle.value} | PracticeServer Admin`;
 });
 </script>

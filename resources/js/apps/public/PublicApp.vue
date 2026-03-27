@@ -11,36 +11,24 @@
             :user-status-label="userStatusLabel"
             :user-label="userLabel"
             :menu-items="authMenuItems"
+            :current-path="route.path"
             :navigate="navigate"
             @action="handleNavbarAction"
         />
 
         <section class="spa-wrap">
             <div class="spa-content">
-                <el-card v-if="!isVertexChatPage && !isVertexImagePage && !isVertexDetectPage" class="spa-panel" shadow="hover">
-                    <template #header>
-                        <div class="spa-panel-header">
-                            <el-tag type="success">Public Area</el-tag>
-                            <span class="spa-panel-title">前台入口</span>
-                        </div>
-                    </template>
+                <div class="spa-page-head">
+                    <p class="spa-page-breadcrumb">{{ pageBreadcrumb }}</p>
+                    <h1 class="spa-page-title">{{ pageTitle }}</h1>
+                </div>
 
-                    <h1 class="spa-title">這是一般使用者頁面</h1>
-                    <p class="spa-description">
-                        前台與後台已分開登入。這裡提供一般使用者自己的登入與註冊流程。
-                    </p>
-
-                    <el-space class="spa-actions-row" wrap>
-                        <el-button v-if="!isAuthenticated" plain @click="openLoginDialog">立即登入</el-button>
-                        <el-button v-if="!isAuthenticated" type="primary" @click="openRegisterDialog">立即註冊</el-button>
-                        <el-button v-if="isAuthenticated" plain @click="openProfileDialog">個人資料</el-button>
-                        <el-button v-if="isAuthenticated" type="primary" @click="openInviteDialog">發送邀請</el-button>
-                    </el-space>
-                </el-card>
-
-                <vertex-chat-panel v-else-if="isVertexChatPage" />
-                <vertex-image-panel v-else-if="isVertexImagePage" />
-                <vertex-detect-panel v-else-if="isVertexDetectPage" />
+                <router-view v-slot="{ Component }">
+                    <component
+                        :is="Component"
+                        v-bind="currentPageProps"
+                    />
+                </router-view>
             </div>
         </section>
     </main>
@@ -78,9 +66,6 @@ import AppNavbar from '../../components/AppNavbar.vue';
 import AuthDialogs from '../../components/AuthDialogs.vue';
 import InviteDialog from '../../components/InviteDialog.vue';
 import ProfileDialog from '../../components/ProfileDialog.vue';
-import VertexChatPanel from '../../components/Google/VertexAI/VertexChatPanel.vue';
-import VertexDetectPanel from '../../components/Google/VertexAI/VertexDetectPanel.vue';
-import VertexImagePanel from '../../components/Google/VertexAI/VertexImagePanel.vue';
 import {
     AUTH_MENU_ITEM_KEYS,
     GUEST_NAVBAR_ACTION_KEYS,
@@ -126,6 +111,18 @@ const navbarDropdownMenus = computed(() => {
     return buildNavbarDropdownMenus(t);
 });
 
+const pageTitle = computed(() => {
+    const titleKey = route.meta?.titleKey;
+
+    return typeof titleKey === 'string' ? t(titleKey) : 'PracticeServer';
+});
+
+const pageBreadcrumb = computed(() => {
+    const breadcrumbKeys = Array.isArray(route.meta?.breadcrumbKeys) ? route.meta.breadcrumbKeys : [];
+
+    return breadcrumbKeys.map((key) => t(key)).join(' / ');
+});
+
 const navbarActions = computed(() => {
     return isAuthenticated.value ? [] : guestNavbarActions.value;
 });
@@ -143,16 +140,18 @@ const registerDialogVisible = ref(false);
 const profileDialogVisible = ref(false);
 const inviteDialogVisible = ref(false);
 
-const isVertexChatPage = computed(() => {
-    return route.name === 'public.vertex.chat';
-});
+const currentPageProps = computed(() => {
+    if (route.name !== 'public.home') {
+        return {};
+    }
 
-const isVertexImagePage = computed(() => {
-    return route.name === 'public.vertex.image';
-});
-
-const isVertexDetectPage = computed(() => {
-    return route.name === 'public.vertex.detect';
+    return {
+        isAuthenticated: isAuthenticated.value,
+        openLoginDialog,
+        openRegisterDialog,
+        openProfileDialog,
+        openInviteDialog,
+    };
 });
 
 const openLoginDialog = () => {
@@ -247,5 +246,9 @@ onMounted(async () => {
     await restoreSession();
 
     await enforcePublicOnlyAccount();
+});
+
+watchEffect(() => {
+    document.title = `${pageTitle.value} | PracticeServer`;
 });
 </script>

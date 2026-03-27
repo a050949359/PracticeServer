@@ -20,12 +20,20 @@ services:
       DB_PASSWORD: practice_password
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      QUEUE_CONNECTION: rabbitmq
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_VHOST: /
     volumes:
       - ./:/var/www/html
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_started
+      rabbitmq:
         condition: service_started
     restart: unless-stopped
 
@@ -57,6 +65,20 @@ services:
       - redis_data:/data
     restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: practice-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+
   swagger-ui:
     image: swaggerapi/swagger-ui:latest
     container_name: practice-swagger-ui
@@ -71,3 +93,4 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  rabbitmq_data:

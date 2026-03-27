@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AdminApp from './apps/admin/AdminApp.vue';
+import { adminRouter } from './apps/admin/router';
 import { AUTH_TOKEN_STORAGE_KEY, setAxiosAuthToken } from './composables/useAuthSession';
 import { SPA_APP_SELECTOR, createSpaApp, hasSpaMountTarget } from './createSpaApp';
 
@@ -31,6 +32,10 @@ async function bootstrap() {
     }
 
     const app = createSpaApp(AdminApp);
+
+    app.use(adminRouter);
+
+    await adminRouter.isReady();
 
     app.mount(SPA_APP_SELECTOR);
 }

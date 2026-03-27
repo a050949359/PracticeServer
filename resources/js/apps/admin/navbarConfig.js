@@ -36,3 +36,37 @@ export const buildAuthMenuItems = (t) => [
         label: t('navbar.actions.logout'),
     },
 ];
+
+export const ADMIN_DROPDOWN_MENU_KEYS = Object.freeze({
+    google: 'google',
+    googleDrive: 'google-drive',
+    queue: 'queue',
+    csvExport: 'csv-export',
+});
+
+export const buildAdminDropdownMenus = (t) => [
+    {
+        key: ADMIN_DROPDOWN_MENU_KEYS.google,
+        label: t('navbar.google.label'),
+        variant: 'ghost',
+        items: [
+            {
+                key: ADMIN_DROPDOWN_MENU_KEYS.googleDrive,
+                label: t('navbar.google.drive'),
+                to: '/admin/google/drive',
+            },
+        ],
+    },
+    {
+        key: ADMIN_DROPDOWN_MENU_KEYS.queue,
+        label: t('navbar.queue.label'),
+        variant: 'ghost',
+        items: [
+            {
+                key: ADMIN_DROPDOWN_MENU_KEYS.csvExport,
+                label: t('navbar.queue.csvExport'),
+                to: '/admin/exports/csv',
+            },
+        ],
+    },
+];

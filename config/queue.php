@@ -73,6 +73,53 @@ return [
             'after_commit' => false,
         ],
 
+        'rabbitmq' => [
+            'driver' => 'rabbitmq',
+            'queue' => env('RABBITMQ_QUEUE', 'default'),
+            'connection' => 'PhpAmqpLib\\Connection\\AMQPStreamConnection',
+            'worker' => env('RABBITMQ_WORKER', 'default'),
+            'hosts' => [
+                [
+                    'host' => env('RABBITMQ_HOST', '127.0.0.1'),
+                    'port' => (int) env('RABBITMQ_PORT', 5672),
+                    'user' => env('RABBITMQ_USER', 'guest'),
+                    'password' => env('RABBITMQ_PASSWORD', 'guest'),
+                    'vhost' => env('RABBITMQ_VHOST', '/'),
+                ],
+            ],
+            'options' => [
+                'exchange' => [
+                    'name' => env('RABBITMQ_EXCHANGE_NAME'),
+                    'declare' => (bool) env('RABBITMQ_EXCHANGE_DECLARE', true),
+                    'type' => env('RABBITMQ_EXCHANGE_TYPE', 'direct'),
+                    'passive' => (bool) env('RABBITMQ_EXCHANGE_PASSIVE', false),
+                    'durable' => (bool) env('RABBITMQ_EXCHANGE_DURABLE', true),
+                    'auto_delete' => (bool) env('RABBITMQ_EXCHANGE_AUTODELETE', false),
+                ],
+                'queue' => [
+                    'declare' => (bool) env('RABBITMQ_QUEUE_DECLARE', true),
+                    'bind' => (bool) env('RABBITMQ_QUEUE_BIND', true),
+                    'durable' => (bool) env('RABBITMQ_QUEUE_DURABLE', true),
+                    'prioritize_delayed' => (bool) env('RABBITMQ_QUEUE_PRIORITIZE_DELAYED', false),
+                    'queue_max_priority' => (int) env('RABBITMQ_QUEUE_MAX_PRIORITY', 10),
+                ],
+                'heartbeat' => (int) env('RABBITMQ_HEARTBEAT', 0),
+                'connection_timeout' => (float) env('RABBITMQ_CONNECTION_TIMEOUT', 3.0),
+                'read_timeout' => (float) env('RABBITMQ_READ_TIMEOUT', 3.0),
+                'write_timeout' => (float) env('RABBITMQ_WRITE_TIMEOUT', 3.0),
+                'channel_rpc_timeout' => (float) env('RABBITMQ_CHANNEL_RPC_TIMEOUT', 0.0),
+            ],
+            'network_protocol' => env('RABBITMQ_NETWORK_PROTOCOL', 'tcp'),
+            'after_commit' => false,
+            'lazy' => (bool) env('RABBITMQ_LAZY', true),
+            'management' => [
+                'host' => env('RABBITMQ_MANAGEMENT_HOST', env('RABBITMQ_HOST', '127.0.0.1')),
+                'port' => (int) env('RABBITMQ_MANAGEMENT_PORT', 15672),
+                'user' => env('RABBITMQ_MANAGEMENT_USER', env('RABBITMQ_USER', 'guest')),
+                'password' => env('RABBITMQ_MANAGEMENT_PASSWORD', env('RABBITMQ_PASSWORD', 'guest')),
+            ],
+        ],
+
         'deferred' => [
             'driver' => 'deferred',
         ],
