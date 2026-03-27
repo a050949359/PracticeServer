@@ -51,4 +51,12 @@ return [
         'oauth_redirect_uri' => env('GOOGLE_DRIVE_OAUTH_REDIRECT_URI'),
     ],
 
+    'firestore' => [
+        'project_id' => env('FIRESTORE_PROJECT_ID', env('VERTEX_AI_PROJECT_ID')),
+        'credentials_path' => env('FIRESTORE_CREDENTIALS', env('GOOGLE_APPLICATION_CREDENTIALS')),
+        'database' => env('FIRESTORE_DATABASE', '(default)'),
+        'task_collection' => env('FIRESTORE_TASK_COLLECTION', 'csv_export_tasks'),
+        'sync_enabled' => (bool) env('FIRESTORE_SYNC_ENABLED', false),
+    ],
+
 ];

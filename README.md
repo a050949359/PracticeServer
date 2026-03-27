@@ -183,11 +183,72 @@ http://localhost:15672
 php artisan queue:work rabbitmq --queue=default
 ```
 
+若 `.env` 已設定 `QUEUE_CONNECTION=rabbitmq`，也可使用：
+
+```bash
+php artisan queue:work --queue=default
+```
+
+注意：指令是 `queue:work`，不是 `queue:worker`。
+
 若要使用 RabbitMQ 套件提供的 consumer：
 
 ```bash
 php artisan rabbitmq:consume --queue=default
 ```
+
+## Firestore 同步與前端即時監聽
+
+CSV 匯出任務會由後端同步到 Firestore（REST API），前端 Admin CSV 匯出頁可用 Firebase Web SDK 即時監聽任務進度。
+
+### 後端 Firestore（REST）
+
+`.env` 需設定：
+
+```dotenv
+FIRESTORE_PROJECT_ID=ohya-project-02
+FIRESTORE_CREDENTIALS=/absolute/path/to/storage/app/firebase-sa.json
+FIRESTORE_DATABASE=(default)
+FIRESTORE_TASK_COLLECTION=csv_export_tasks
+FIRESTORE_SYNC_ENABLED=true
+```
+
+說明：
+
+- `FIRESTORE_CREDENTIALS` 使用 Service Account JSON（後端用途）。
+- 後端會將文件寫入 `csv_export_tasks/{task_id}`。
+
+### 前端 Firebase Realtime Listener
+
+Vue 端僅能透過 `VITE_` 前綴讀取環境變數（`import.meta.env`）。
+
+`.env` 需設定：
+
+```dotenv
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_DATABASE_ID=(default)
+VITE_FIRESTORE_TASK_COLLECTION=csv_export_tasks
+```
+
+設定更新後請重啟前端開發伺服器：
+
+```bash
+npm run dev
+```
+
+### 權限錯誤排查
+
+若頁面出現 `Missing or insufficient permissions.`，通常是 Firestore Security Rules 拒絕前端讀取，不是文件不存在。
+
+- 文件不存在：`onSnapshot` 通常收到 `exists() === false`。
+- 權限不足：會拋出 `PERMISSION_DENIED` / `Missing or insufficient permissions.`。
+
+目前頁面只會對 `pending`、`processing` 任務掛載 listener，並在即時監聽失敗時自動回退到 polling。
 
 ### 僅啟動 API 服務
 
@@ -221,6 +282,8 @@ php artisan test --compact
   - 檔名格式 yyyymmdd_HHMMSS.csv
   - 每 5 秒寫入 1 行假資料（queue job 鏈式執行）
   - 任務列表、單筆狀態、下載 API
+  - 後端同步 Firestore（REST API）
+  - 前端 Firebase 即時監聽（失敗自動回退 polling）
 - Queue 狀態監控（staff）：
   - API：/api/admin/queue/stats
   - 指標：ready / unacked / total / consumers

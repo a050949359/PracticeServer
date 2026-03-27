@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\CsvExportTask;
 use App\Services\Export\CsvExportFakeDataService;
+use App\Services\Export\CsvExportTaskFirestoreSyncService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
@@ -17,8 +18,10 @@ class GenerateCsvExportRowJob implements ShouldQueue
 
     public function __construct(public int $taskId) {}
 
-    public function handle(CsvExportFakeDataService $fakeDataService): void
-    {
+    public function handle(
+        CsvExportFakeDataService $fakeDataService,
+        CsvExportTaskFirestoreSyncService $csvExportTaskFirestoreSyncService,
+    ): void {
         $task = CsvExportTask::query()->find($this->taskId);
 
         if (! $task instanceof CsvExportTask) {
@@ -41,6 +44,8 @@ class GenerateCsvExportRowJob implements ShouldQueue
                     'status' => CsvExportTask::STATUS_PROCESSING,
                     'started_at' => now(),
                 ])->save();
+
+                $csvExportTaskFirestoreSyncService->syncTask($task);
             }
 
             $sequence = $task->generated_rows + 1;
@@ -56,6 +61,8 @@ class GenerateCsvExportRowJob implements ShouldQueue
                 'last_error' => null,
             ])->save();
 
+            $csvExportTaskFirestoreSyncService->syncTask($task);
+
             if ($sequence < $task->total_rows) {
                 static::dispatch($task->id)
                     ->onQueue($task->queue_name)
@@ -67,6 +74,8 @@ class GenerateCsvExportRowJob implements ShouldQueue
                 'last_error' => $throwable->getMessage(),
                 'finished_at' => now(),
             ])->save();
+
+            $csvExportTaskFirestoreSyncService->syncTask($task);
 
             throw $throwable;
         }

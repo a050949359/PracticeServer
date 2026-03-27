@@ -92,6 +92,8 @@
 <script setup>
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
+import { getApps, initializeApp } from 'firebase/app';
+import { doc, getFirestore, onSnapshot } from 'firebase/firestore';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -110,6 +112,9 @@ const queueStats = ref({
 });
 const isSubmitting = ref(false);
 let refreshTimer = null;
+let firestoreDb = null;
+const taskUnsubscribers = new Map();
+let hasRealtimeErrorNotified = false;
 
 const goAdminHome = () => {
     router.push('/admin');
@@ -119,11 +124,144 @@ const normalizeColumnOptions = (availableColumns) => {
     return Object.entries(availableColumns ?? {}).map(([value, label]) => ({ value, label }));
 };
 
+const normalizeRealtimeTask = (snapshot) => {
+    const decoded = snapshot.data() ?? {};
+
+    const taskId = Number(decoded.task_id ?? snapshot.id);
+    if (!Number.isFinite(taskId)) {
+        return null;
+    }
+
+    return {
+        ...decoded,
+        id: taskId,
+        columns: Array.isArray(decoded.columns) ? decoded.columns : [],
+        generated_rows: Number(decoded.generated_rows ?? 0),
+        total_rows: Number(decoded.total_rows ?? 0),
+        progress_percentage: Number(decoded.progress_percentage ?? 0),
+    };
+};
+
+const upsertTask = (nextTask) => {
+    const index = tasks.value.findIndex((task) => Number(task.id) === Number(nextTask.id));
+
+    if (index === -1) {
+        return;
+    }
+
+    const merged = {
+        ...tasks.value[index],
+        ...nextTask,
+    };
+
+    tasks.value.splice(index, 1, merged);
+};
+
+const disableRealtimeSync = (message) => {
+    for (const unsubscribe of taskUnsubscribers.values()) {
+        unsubscribe();
+    }
+
+    taskUnsubscribers.clear();
+    firestoreDb = null;
+
+    if (!hasRealtimeErrorNotified) {
+        ElMessage.warning(message ?? 'Firebase 即時監聽失敗，改用輪詢更新。');
+        hasRealtimeErrorNotified = true;
+    }
+};
+
+const attachTaskListener = (taskId) => {
+    if (!firestoreDb || taskUnsubscribers.has(taskId)) {
+        return;
+    }
+
+    const collectionName = import.meta.env.VITE_FIRESTORE_TASK_COLLECTION || 'csv_export_tasks';
+    const reference = doc(firestoreDb, collectionName, String(taskId));
+
+    const unsubscribe = onSnapshot(
+        reference,
+        (snapshot) => {
+            if (!snapshot.exists()) {
+                return;
+            }
+
+            const nextTask = normalizeRealtimeTask(snapshot);
+            if (!nextTask) {
+                return;
+            }
+
+            upsertTask(nextTask);
+        },
+        (error) => {
+            disableRealtimeSync(error?.message ?? 'Firebase 即時監聽失敗，改用輪詢更新。');
+        },
+    );
+
+    taskUnsubscribers.set(taskId, unsubscribe);
+};
+
+const syncTaskListeners = () => {
+    if (!firestoreDb) {
+        return;
+    }
+
+    const activeTaskIds = new Set(
+        tasks.value
+            .filter((task) => ['pending', 'processing'].includes(task.status))
+            .map((task) => String(task.id)),
+    );
+
+    for (const [taskId, unsubscribe] of taskUnsubscribers.entries()) {
+        if (!activeTaskIds.has(taskId)) {
+            unsubscribe();
+            taskUnsubscribers.delete(taskId);
+        }
+    }
+
+    for (const taskId of activeTaskIds) {
+        attachTaskListener(taskId);
+    }
+};
+
+const initializeRealtimeSync = () => {
+    const firebaseConfig = {
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+        appId: import.meta.env.VITE_FIREBASE_APP_ID,
+        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    };
+
+    const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
+    const hasRequiredConfig = requiredKeys.every((key) => typeof firebaseConfig[key] === 'string' && firebaseConfig[key] !== '');
+
+    if (!hasRequiredConfig) {
+        return false;
+    }
+
+    try {
+        const app = getApps()[0] ?? initializeApp(firebaseConfig);
+        const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
+        firestoreDb = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+        hasRealtimeErrorNotified = false;
+        syncTaskListeners();
+
+        return true;
+    } catch (error) {
+        ElMessage.warning(error?.message ?? 'Firebase 初始化失敗，改用輪詢更新。');
+
+        return false;
+    }
+};
+
 const loadTasks = async () => {
     try {
         const response = await axios.get('/api/admin/csv-exports');
         columnOptions.value = normalizeColumnOptions(response?.data?.data?.available_columns);
         tasks.value = response?.data?.data?.items ?? [];
+        syncTaskListeners();
     } catch (error) {
         const errorMessage = error?.response?.data?.error ?? '載入匯出任務失敗';
         ElMessage.error(errorMessage);
@@ -239,7 +377,7 @@ const startPolling = () => {
     refreshTimer = window.setInterval(() => {
         const hasActiveTask = tasks.value.some((task) => ['pending', 'processing'].includes(task.status));
 
-        if (hasActiveTask) {
+        if (hasActiveTask && !firestoreDb) {
             loadTasks();
         }
 
@@ -249,6 +387,9 @@ const startPolling = () => {
 
 onMounted(async () => {
     await Promise.all([loadTasks(), loadQueueStats()]);
+
+    initializeRealtimeSync();
+
     startPolling();
 });
 
@@ -256,5 +397,11 @@ onBeforeUnmount(() => {
     if (refreshTimer) {
         window.clearInterval(refreshTimer);
     }
+
+    for (const unsubscribe of taskUnsubscribers.values()) {
+        unsubscribe();
+    }
+
+    taskUnsubscribers.clear();
 });
 </script>

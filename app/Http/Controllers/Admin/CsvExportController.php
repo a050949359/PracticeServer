@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Export\CsvExportStoreRequest;
 use App\Jobs\GenerateCsvExportRowJob;
 use App\Models\CsvExportTask;
 use App\Services\Export\CsvExportFakeDataService;
+use App\Services\Export\CsvExportTaskFirestoreSyncService;
 use App\Services\Queue\RabbitMqQueueStatsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class CsvExportController extends Controller
     public function __construct(
         private CsvExportFakeDataService $fakeDataService,
         private RabbitMqQueueStatsService $rabbitMqQueueStatsService,
+        private CsvExportTaskFirestoreSyncService $csvExportTaskFirestoreSyncService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -86,6 +88,8 @@ class CsvExportController extends Controller
             GenerateCsvExportRowJob::dispatch($task->id)
                 ->onQueue($task->queue_name)
                 ->delay(now()->addSeconds($task->interval_seconds));
+
+            $this->csvExportTaskFirestoreSyncService->syncTask($task);
         } catch (RuntimeException $exception) {
             return response()->json([
                 'message' => 'CSV export task creation failed',

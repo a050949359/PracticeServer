@@ -6,6 +6,7 @@ use App\Jobs\GenerateCsvExportRowJob;
 use App\Models\CsvExportTask;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Export\CsvExportTaskFirestoreSyncService;
 use App\Services\Queue\RabbitMqQueueStatsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -49,6 +50,10 @@ class CsvExportApiTest extends TestCase
     {
         Storage::fake('local');
         Queue::fake();
+
+        $this->mock(CsvExportTaskFirestoreSyncService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('syncTask')->once();
+        });
 
         $user = $this->actingAsStaffUser();
 

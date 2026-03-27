@@ -5,9 +5,11 @@ namespace Tests\Unit;
 use App\Jobs\GenerateCsvExportRowJob;
 use App\Models\CsvExportTask;
 use App\Services\Export\CsvExportFakeDataService;
+use App\Services\Export\CsvExportTaskFirestoreSyncService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -30,8 +32,11 @@ class GenerateCsvExportRowJobTest extends TestCase
 
         Storage::disk('local')->put($task->file_path, "serial_no,name\n");
 
+        $csvExportTaskFirestoreSyncService = Mockery::mock(CsvExportTaskFirestoreSyncService::class);
+        $csvExportTaskFirestoreSyncService->shouldReceive('syncTask')->atLeast()->once();
+
         $job = new GenerateCsvExportRowJob($task->id);
-        $job->handle(app(CsvExportFakeDataService::class));
+        $job->handle(app(CsvExportFakeDataService::class), $csvExportTaskFirestoreSyncService);
 
         $task->refresh();
 
@@ -58,8 +63,11 @@ class GenerateCsvExportRowJobTest extends TestCase
 
         Storage::disk('local')->put($task->file_path, "serial_no,email\n");
 
+        $csvExportTaskFirestoreSyncService = Mockery::mock(CsvExportTaskFirestoreSyncService::class);
+        $csvExportTaskFirestoreSyncService->shouldReceive('syncTask')->atLeast()->once();
+
         $job = new GenerateCsvExportRowJob($task->id);
-        $job->handle(app(CsvExportFakeDataService::class));
+        $job->handle(app(CsvExportFakeDataService::class), $csvExportTaskFirestoreSyncService);
 
         $task->refresh();
 
