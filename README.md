@@ -2,9 +2,33 @@
 
 Laravel 12 專案，包含 Sanctum 驗證、Invitation 流程、角色權限管理與 Swagger 文件。
 
+## 主要功能
+
+- 使用者註冊/登入/登出
+- 邀請註冊流程（Invitation）
+- 使用 spatie/laravel-permission 的角色與權限管理
+- Google OAuth（使用者授權）
+- Google Drive（staff）檔案上傳、列表、下載、刪除
+- Vertex AI 對話、影像分析、OCR（文字偵測與物件座標）與辨識歷史
+- RabbitMQ queue driver 與背景工作處理
+- CSV 匯出任務（staff）：
+  - 建立匯出任務 API
+  - 檔名格式 yyyymmdd_HHMMSS.csv
+  - 每 5 秒寫入 1 行假資料（queue job 鏈式執行）
+  - 任務列表、單筆狀態、下載 API
+  - 後端同步 Firestore（REST API）
+  - 後端同步 InfluxDB（時序資料）
+  - 前端 Firebase 即時監聽（失敗自動回退 polling）
+- Queue 狀態監控（staff）：
+  - API：/api/admin/queue/stats
+  - 指標：ready / unacked / total / consumers
+  - Admin CSV 匯出頁 queue 進度條
+- API 文件（l5-swagger / OpenAPI）
+- 詳細技術變更與 API 範例請見 CHANGELOG_2026-03-25.md、CHANGELOG_2026-03-27.md
+
 ## 版本資訊
 
-- PHP: ^8.2（建議 8.5）
+- PHP: ^8.2（建議 8.3）
 - Laravel Framework: ^12.0
 - PHPUnit: ^11.5
 - Vue: ^3.5
@@ -100,15 +124,21 @@ npm run build
 - 建立一個新的 Service Account。
 - 依需求授予可呼叫 Vertex AI 的權限。
 
-### 2) 產生 JSON 金鑰
+### 2) 以 Linux 指令產生 JSON 金鑰（建議）
 
-- 進入剛建立的 Service Account。
-- 在 Keys 頁籤新增金鑰。
-- 選擇 JSON 格式下載。
+使用目前 gcloud 身分具有建立 Service Account Key 的 IAM 權限（例如 `iam.serviceAccountKeys.create`），可直接在專案根目錄執行：
 
-### 3) 放到專案目錄
+```bash
+mkdir -p storage/app
+gcloud iam service-accounts keys create storage/app/gcp-sa.json \
+  --iam-account=your-service-account@your-project.iam.gserviceaccount.com \
+  --project=your-project-id
+chmod 600 storage/app/gcp-sa.json
+```
 
-將下載的 JSON 檔案放到以下位置：
+### 3) 若使用 Console 下載 JSON
+
+若你是從 Google Cloud Console 下載 JSON 檔，請放到以下位置：
 
 ```bash
 storage/app/gcp-sa.json
@@ -201,6 +231,22 @@ php artisan rabbitmq:consume --queue=default
 
 CSV 匯出任務會由後端同步到 Firestore（REST API），前端 Admin CSV 匯出頁可用 Firebase Web SDK 即時監聽任務進度。
 
+### 指標來源分工
+
+- Firestore：僅同步 task 進度資料（例如 `status`、`generated_rows`、`progress_percentage`）。
+- Queue 數量與消費者指標：持續使用 RabbitMQ Management API（`/api/admin/queue/stats`）即時取得，不從 Firestore 讀取。
+
+### 已知相容性問題（PHP 版本）
+
+- 目前建議使用 PHP 8.3。
+- 在 PHP 8.4/8.5 環境，Firestore 相關套件使用到的底層 library 可能觸發以下錯誤：
+
+```text
+Maximum call stack size of 8339456 bytes (zend.max_allowed_stack_size - zend.reserved_stack_size) reached. Infinite recursion
+```
+
+- 若遇到上述錯誤，請先降版到 PHP 8.3 再重試。
+
 ### 後端 Firestore（REST）
 
 `.env` 需設定：
@@ -217,6 +263,25 @@ FIRESTORE_SYNC_ENABLED=true
 
 - `FIRESTORE_CREDENTIALS` 使用 Service Account JSON（後端用途）。
 - 後端會將文件寫入 `csv_export_tasks/{task_id}`。
+
+### 後端 InfluxDB（時序資料）
+
+`.env` 需設定：
+
+```dotenv
+INFLUXDB_URL=http://127.0.0.1:8086
+INFLUXDB_TOKEN=your-influxdb-token
+INFLUXDB_ORG=your-org
+INFLUXDB_BUCKET=csv_export_metrics
+INFLUXDB_MEASUREMENT=csv_export_task_progress
+INFLUXDB_SYNC_ENABLED=true
+```
+
+說明：
+
+- `INFLUXDB_SYNC_ENABLED=true` 後，CSV 匯出任務進度會寫入 InfluxDB。
+- 預設 measurement 為 `csv_export_task_progress`。
+- 每個時間點會寫入 `total_rows`、`generated_rows`、`progress_percentage`、`interval_seconds` 等欄位。
 
 ### 前端 Firebase Realtime Listener
 
@@ -267,29 +332,6 @@ npm run dev
 ```bash
 php artisan test --compact
 ```
-
-## 主要功能
-
-- 使用者註冊/登入/登出
-- 邀請註冊流程（Invitation）
-- 使用 spatie/laravel-permission 的角色與權限管理
-- Google OAuth（使用者授權）
-- Google Drive（staff）檔案上傳、列表、下載、刪除
-- Vertex AI 對話、影像分析、OCR（文字偵測與物件座標）與辨識歷史
-- RabbitMQ queue driver 與背景工作處理
-- CSV 匯出任務（staff）：
-  - 建立匯出任務 API
-  - 檔名格式 yyyymmdd_HHMMSS.csv
-  - 每 5 秒寫入 1 行假資料（queue job 鏈式執行）
-  - 任務列表、單筆狀態、下載 API
-  - 後端同步 Firestore（REST API）
-  - 前端 Firebase 即時監聽（失敗自動回退 polling）
-- Queue 狀態監控（staff）：
-  - API：/api/admin/queue/stats
-  - 指標：ready / unacked / total / consumers
-  - Admin CSV 匯出頁 queue 進度條
-- API 文件（l5-swagger / OpenAPI）
-- 詳細技術變更與 API 範例請見 CHANGELOG_2026-03-25.md、CHANGELOG_2026-03-27.md
 
 ## Docker 狀態
 

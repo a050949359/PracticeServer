@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\CsvExportTask;
-use App\Services\Export\CsvExportFakeDataService;
-use App\Services\Export\CsvExportTaskFirestoreSyncService;
+use App\Services\CsvExport\CsvExportFakeDataService;
+use App\Services\CsvExport\CsvExportTaskFirestoreSyncService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
@@ -33,10 +33,23 @@ class GenerateCsvExportRowJob implements ShouldQueue
         }
 
         try {
+            $task->loadMissing(['template', 'channel.tags']);
+            $queueName = (string) ($task->template?->queue_name ?? 'default');
+            $intervalSeconds = (int) ($task->template?->interval_seconds ?? 5);
+
             $disk = Storage::disk($task->disk);
 
             if (! $disk->exists($task->file_path)) {
                 throw new RuntimeException('CSV export file does not exist.');
+            }
+
+            $columns = $task->template?->columns;
+            if (! is_array($columns) || $columns === []) {
+                $columns = $this->readCsvHeader($task);
+            }
+
+            if ($columns === []) {
+                throw new RuntimeException('CSV export template columns are required.');
             }
 
             if ($task->started_at === null) {
@@ -49,7 +62,7 @@ class GenerateCsvExportRowJob implements ShouldQueue
             }
 
             $sequence = $task->generated_rows + 1;
-            $row = $fakeDataService->generateRow($task->columns ?? [], $sequence);
+            $row = $fakeDataService->generateRow($columns, $sequence, $this->tagValueOverrides($task));
             $this->appendCsvRow($task, $row);
 
             $task->forceFill([
@@ -65,8 +78,8 @@ class GenerateCsvExportRowJob implements ShouldQueue
 
             if ($sequence < $task->total_rows) {
                 static::dispatch($task->id)
-                    ->onQueue($task->queue_name)
-                    ->delay(now()->addSeconds($task->interval_seconds));
+                    ->onQueue($queueName)
+                    ->delay(now()->addSeconds($intervalSeconds));
             }
         } catch (\Throwable $throwable) {
             $task->forceFill([
@@ -97,5 +110,55 @@ class GenerateCsvExportRowJob implements ShouldQueue
         } finally {
             fclose($stream);
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function readCsvHeader(CsvExportTask $task): array
+    {
+        $stream = fopen(Storage::disk($task->disk)->path($task->file_path), 'rb');
+
+        if ($stream === false) {
+            return [];
+        }
+
+        try {
+            $header = fgetcsv($stream);
+
+            if (! is_array($header)) {
+                return [];
+            }
+
+            return array_values(array_filter(array_map(static fn ($column): string => trim((string) $column), $header), static fn (string $column): bool => $column !== ''));
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private function tagValueOverrides(CsvExportTask $task): array
+    {
+        $channel = $task->channel;
+
+        if ($channel === null) {
+            return [];
+        }
+
+        return $channel->tags
+            ->mapWithKeys(function ($tag): array {
+                $allowedValues = is_array($tag->allowed_values) ? array_values(array_filter(array_map(static fn ($value): string => trim((string) $value), $tag->allowed_values), static fn (string $value): bool => $value !== '')) : [];
+
+                if ($allowedValues === []) {
+                    return [];
+                }
+
+                return [
+                    (string) $tag->column_name => $allowedValues,
+                ];
+            })
+            ->all();
     }
 }

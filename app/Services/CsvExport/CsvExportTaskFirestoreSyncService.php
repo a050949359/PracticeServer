@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Export;
+namespace App\Services\CsvExport;
 
 use App\Models\CsvExportTask;
 use Google\Auth\Credentials\ServiceAccountCredentials;
@@ -224,7 +224,7 @@ class CsvExportTaskFirestoreSyncService
     }
 
     /**
-     * @return array<string, int|string|null|list<string>>
+     * @return array<string, int|string|null>
      */
     private function payload(CsvExportTask $task): array
     {
@@ -233,19 +233,13 @@ class CsvExportTaskFirestoreSyncService
 
         return [
             'task_id' => (int) $task->id,
-            'user_id' => (int) $task->user_id,
             'status' => $task->status,
-            'file_name' => $task->file_name,
-            'columns' => array_values($task->columns ?? []),
             'total_rows' => (int) $task->total_rows,
             'generated_rows' => (int) $task->generated_rows,
             'progress_percentage' => (int) min(100, floor(($generatedRows / $totalRows) * 100)),
-            'interval_seconds' => (int) $task->interval_seconds,
-            'queue_name' => $task->queue_name,
             'last_error' => $task->last_error,
             'started_at' => $task->started_at?->toISOString(),
             'finished_at' => $task->finished_at?->toISOString(),
-            'created_at' => $task->created_at?->toISOString(),
             'updated_at' => $task->updated_at?->toISOString(),
         ];
     }

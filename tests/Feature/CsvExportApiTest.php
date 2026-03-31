@@ -3,10 +3,11 @@
 namespace Tests\Feature;
 
 use App\Jobs\GenerateCsvExportRowJob;
+use App\Models\CsvExportChannel;
 use App\Models\CsvExportTask;
 use App\Models\Team;
 use App\Models\User;
-use App\Services\Export\CsvExportTaskFirestoreSyncService;
+use App\Services\CsvExport\CsvExportTaskFirestoreSyncService;
 use App\Services\Queue\RabbitMqQueueStatsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -82,6 +83,95 @@ class CsvExportApiTest extends TestCase
     }
 
     #[Test]
+    public function csv_export_index_returns_grouped_available_columns(): void
+    {
+        $this->actingAsStaffUser();
+
+        $response = $this->getJson('/api/admin/csv-exports');
+
+        $response
+            ->assertOk()
+            ->assertJson([
+                'code' => 'csv_export_tasks_loaded',
+                'data' => [
+                    'available_columns' => [
+                        'serial_no' => 'Serial No',
+                        'status' => 'Status',
+                    ],
+                    'available_tag_columns' => [
+                        'status' => 'Status',
+                    ],
+                    'available_field_columns' => [
+                        'serial_no' => 'Serial No',
+                    ],
+                ],
+            ]);
+    }
+
+    #[Test]
+    public function csv_export_creation_can_use_channel_defined_columns(): void
+    {
+        Storage::fake('local');
+        Queue::fake();
+
+        $this->mock(CsvExportTaskFirestoreSyncService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('syncTask')->once();
+        });
+
+        $user = $this->actingAsStaffUser();
+
+        $channel = CsvExportChannel::query()->create([
+            'user_id' => $user->id,
+            'code' => 'telemetry_demo',
+            'name' => 'telemetry-demo',
+            'measurement' => 'telemetry_measurement',
+            'timestamp_source' => 'now',
+            'is_active' => true,
+        ]);
+
+        $channel->tags()->create([
+            'column_name' => 'status',
+            'sort_order' => 0,
+        ]);
+
+        $channel->fields()->create([
+            'column_name' => 'serial_no',
+            'data_type' => 'int',
+            'sort_order' => 0,
+        ]);
+
+        $channel->fields()->create([
+            'column_name' => 'created_at',
+            'data_type' => 'string',
+            'sort_order' => 1,
+        ]);
+
+        $response = $this->postJson('/api/admin/csv-exports', [
+            'channel_id' => $channel->id,
+            'total_rows' => 3,
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJson([
+                'code' => 'csv_export_task_created',
+                'data' => [
+                    'channel_id' => $channel->id,
+                    'channel_code' => 'telemetry_demo',
+                    'measurement' => 'telemetry_measurement',
+                ],
+            ]);
+
+        $task = CsvExportTask::query()->first();
+
+        $this->assertNotNull($task);
+        $this->assertSame($channel->id, $task->channel_id);
+        $this->assertStringContainsString('__channel_telemetry_demo__telemetry_measurement.csv', $task->file_name);
+        $this->assertStringContainsString('status,serial_no,created_at', Storage::disk('local')->get($task->file_path));
+        Queue::assertPushed(GenerateCsvExportRowJob::class, 1);
+    }
+
+    #[Test]
     public function csv_export_download_returns_created_file(): void
     {
         Storage::fake('local');
@@ -112,7 +202,7 @@ class CsvExportApiTest extends TestCase
             $mock->shouldReceive('stats')
                 ->once()
                 ->with('default')
-                ->andReturn([
+                ->andReturnUsing(static fn (): array => [
                     'queue' => 'default',
                     'messages_ready' => 3,
                     'messages_unacknowledged' => 1,

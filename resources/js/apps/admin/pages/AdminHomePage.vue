@@ -17,6 +17,7 @@
             <el-button v-if="isAuthenticated" type="primary" @click="openInviteDialog">發送邀請</el-button>
             <el-button plain @click="goDrivePage">Google Drive</el-button>
             <el-button plain @click="goCsvExportPage">CSV 匯出</el-button>
+            <el-button plain @click="goCsvChannelPage">Channel 管理</el-button>
             <el-button plain>查看更多</el-button>
         </el-space>
     </el-card>
@@ -49,6 +50,10 @@ defineProps({
         required: true,
     },
     goCsvExportPage: {
+        type: Function,
+        required: true,
+    },
+    goCsvChannelPage: {
         type: Function,
         required: true,
     },

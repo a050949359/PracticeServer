@@ -1,4 +1,5 @@
 import AdminGoogleDrivePage from './pages/AdminGoogleDrivePage.vue';
+import AdminCsvChannelPage from './pages/AdminCsvChannelPage.vue';
 import AdminCsvExportPage from './pages/AdminCsvExportPage.vue';
 import AdminHomePage from './pages/AdminHomePage.vue';
 import { createRouter, createWebHistory } from 'vue-router';
@@ -29,6 +30,15 @@ const routes = [
         meta: {
             titleKey: 'pages.admin.csvExport.title',
             breadcrumbKeys: ['pages.admin.home.breadcrumb', 'pages.admin.csvExport.breadcrumb'],
+        },
+    },
+    {
+        path: '/admin/exports/csv/channels',
+        name: 'admin.exports.csvChannels',
+        component: AdminCsvChannelPage,
+        meta: {
+            titleKey: 'pages.admin.csvChannels.title',
+            breadcrumbKeys: ['pages.admin.home.breadcrumb', 'pages.admin.csvExport.breadcrumb', 'pages.admin.csvChannels.breadcrumb'],
         },
     },
 ];

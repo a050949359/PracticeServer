@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('auth:clear-resets')->hourly();
+Schedule::command('csv-export:import-influx --limit=50')->everyMinute()->withoutOverlapping();

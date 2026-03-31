@@ -36,6 +36,7 @@ export default {
         queue: {
             label: 'Queue',
             csvExport: 'CSV Export',
+            csvChannels: 'Channel Manager',
         },
         userStatus: {
             unverified: 'Unverified',
@@ -257,6 +258,10 @@ export default {
             csvExport: {
                 title: 'CSV Export',
                 breadcrumb: 'CSV Export',
+            },
+            csvChannels: {
+                title: 'Channel Manager',
+                breadcrumb: 'Channels',
             },
         },
         public: {

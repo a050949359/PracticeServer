@@ -6,11 +6,14 @@
                     <el-tag type="warning">Queue / RabbitMQ</el-tag>
                     <span class="spa-panel-title">CSV 匯出</span>
                 </div>
-                <el-button plain @click="goAdminHome">回後台首頁</el-button>
+                <el-space wrap>
+                    <el-button plain @click="goCsvChannelPage">Channel 管理</el-button>
+                    <el-button plain @click="goAdminHome">回後台首頁</el-button>
+                </el-space>
             </div>
         </template>
 
-        <p class="spa-description">檔名會自動使用 yyyymmdd_HHMMSS.csv，背景工作每 5 秒新增 1 行假資料。</p>
+        <p class="spa-description">未選 channel 時檔名會使用 yyyymmdd_HHMMSS.csv；若有選 channel，檔名會額外帶入 channel code 與 measurement。</p>
 
         <div class="spa-chat-form" style="margin-top: 1rem; gap: 0.5rem; display: grid">
             <p class="spa-chat-hint">
@@ -32,8 +35,29 @@
 
         <div class="spa-chat-form" style="margin-top: 1rem; gap: 1rem; display: grid">
             <div>
+                <p class="spa-chat-hint">選擇 Channel</p>
+                <el-select v-model="selectedChannelId" clearable placeholder="不指定 Channel，改用手動欄位" style="max-width: 28rem; width: 100%">
+                    <el-option
+                        v-for="channel in channels"
+                        :key="channel.id"
+                        :label="`${channel.name} (${channel.code})`"
+                        :value="channel.id"
+                    >
+                        <div style="display: flex; justify-content: space-between; gap: 1rem">
+                            <span>{{ channel.name }}</span>
+                            <span style="color: var(--el-text-color-secondary)">{{ channel.measurement }}</span>
+                        </div>
+                    </el-option>
+                </el-select>
+
+                <p v-if="selectedChannel" class="spa-chat-hint" style="margin-top: 0.5rem">
+                    使用欄位：{{ selectedChannel.columns.join(', ') }}
+                </p>
+            </div>
+
+            <div>
                 <p class="spa-chat-hint">選擇欄位</p>
-                <el-checkbox-group v-model="selectedColumns">
+                <el-checkbox-group v-model="selectedColumns" :disabled="Boolean(selectedChannel)">
                     <el-space wrap>
                         <el-checkbox
                             v-for="option in columnOptions"
@@ -63,6 +87,7 @@
             <article v-for="task in tasks" :key="task.id" class="spa-chat-message spa-chat-message-model">
                 <div class="spa-chat-role">{{ task.file_name }}</div>
                 <p class="spa-chat-text">狀態：{{ renderStatus(task.status) }}</p>
+                <p v-if="task.channel_code" class="spa-chat-text">Channel：{{ task.channel_code }} / {{ task.measurement }}</p>
                 <p class="spa-chat-text">進度：{{ task.generated_rows }} / {{ task.total_rows }}</p>
                 <el-progress
                     :percentage="task.progress_percentage ?? calculateProgress(task)"
@@ -99,8 +124,10 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 
 const selectedColumns = ref(['serial_no', 'name', 'email']);
+const selectedChannelId = ref(null);
 const totalRows = ref(5);
 const columnOptions = ref([]);
+const channels = ref([]);
 const tasks = ref([]);
 const queueStats = ref({
     queue: 'default',
@@ -119,6 +146,14 @@ let hasRealtimeErrorNotified = false;
 const goAdminHome = () => {
     router.push('/admin');
 };
+
+const goCsvChannelPage = () => {
+    router.push('/admin/exports/csv/channels');
+};
+
+const selectedChannel = computed(() => {
+    return channels.value.find((channel) => Number(channel.id) === Number(selectedChannelId.value)) ?? null;
+});
 
 const normalizeColumnOptions = (availableColumns) => {
     return Object.entries(availableColumns ?? {}).map(([value, label]) => ({ value, label }));
@@ -260,6 +295,7 @@ const loadTasks = async () => {
     try {
         const response = await axios.get('/api/admin/csv-exports');
         columnOptions.value = normalizeColumnOptions(response?.data?.data?.available_columns);
+        channels.value = response?.data?.data?.channels ?? [];
         tasks.value = response?.data?.data?.items ?? [];
         syncTaskListeners();
     } catch (error) {
@@ -300,7 +336,7 @@ const loadTask = async (taskId) => {
 };
 
 const createTask = async () => {
-    if (selectedColumns.value.length === 0) {
+    if (!selectedChannel.value && selectedColumns.value.length === 0) {
         ElMessage.error('請至少選擇一個欄位');
         return;
     }
@@ -309,7 +345,8 @@ const createTask = async () => {
 
     try {
         await axios.post('/api/admin/csv-exports', {
-            columns: selectedColumns.value,
+            channel_id: selectedChannel.value?.id ?? null,
+            columns: selectedChannel.value ? undefined : selectedColumns.value,
             total_rows: totalRows.value,
         });
 

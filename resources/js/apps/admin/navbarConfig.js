@@ -42,6 +42,7 @@ export const ADMIN_DROPDOWN_MENU_KEYS = Object.freeze({
     googleDrive: 'google-drive',
     queue: 'queue',
     csvExport: 'csv-export',
+    csvChannels: 'csv-channels',
 });
 
 export const buildAdminDropdownMenus = (t) => [
@@ -66,6 +67,11 @@ export const buildAdminDropdownMenus = (t) => [
                 key: ADMIN_DROPDOWN_MENU_KEYS.csvExport,
                 label: t('navbar.queue.csvExport'),
                 to: '/admin/exports/csv',
+            },
+            {
+                key: ADMIN_DROPDOWN_MENU_KEYS.csvChannels,
+                label: t('navbar.queue.csvChannels'),
+                to: '/admin/exports/csv/channels',
             },
         ],
     },

@@ -36,6 +36,7 @@ export default {
         queue: {
             label: 'Queue',
             csvExport: 'CSV 匯出',
+            csvChannels: 'Channel 管理',
         },
         userStatus: {
             unverified: '未驗證',
@@ -257,6 +258,10 @@ export default {
             csvExport: {
                 title: 'CSV 匯出',
                 breadcrumb: 'CSV 匯出',
+            },
+            csvChannels: {
+                title: 'Channel 管理',
+                breadcrumb: 'Channel 管理',
             },
         },
         public: {

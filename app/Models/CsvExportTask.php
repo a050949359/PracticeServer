@@ -24,15 +24,15 @@ class CsvExportTask extends Model
      */
     protected $fillable = [
         'user_id',
+        'template_id',
+        'channel_id',
         'status',
         'file_name',
         'file_path',
         'disk',
-        'columns',
         'total_rows',
         'generated_rows',
-        'interval_seconds',
-        'queue_name',
+        'last_influx_imported_row',
         'last_error',
         'started_at',
         'finished_at',
@@ -44,10 +44,9 @@ class CsvExportTask extends Model
     protected function casts(): array
     {
         return [
-            'columns' => 'array',
             'total_rows' => 'integer',
             'generated_rows' => 'integer',
-            'interval_seconds' => 'integer',
+            'last_influx_imported_row' => 'integer',
             'started_at' => 'datetime',
             'finished_at' => 'datetime',
         ];
@@ -56,5 +55,15 @@ class CsvExportTask extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(CsvExportTemplate::class);
+    }
+
+    public function channel(): BelongsTo
+    {
+        return $this->belongsTo(CsvExportChannel::class);
     }
 }

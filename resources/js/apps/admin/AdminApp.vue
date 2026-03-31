@@ -153,6 +153,7 @@ const currentPageProps = computed(() => {
         openInviteDialog,
         goDrivePage,
         goCsvExportPage,
+        goCsvChannelPage,
     };
 });
 
@@ -179,6 +180,10 @@ const goDrivePage = () => {
 
 const goCsvExportPage = () => {
     router.push('/admin/exports/csv');
+};
+
+const goCsvChannelPage = () => {
+    router.push('/admin/exports/csv/channels');
 };
 
 const submitProfile = async (payload) => {

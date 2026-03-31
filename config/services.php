@@ -59,4 +59,13 @@ return [
         'sync_enabled' => (bool) env('FIRESTORE_SYNC_ENABLED', false),
     ],
 
+    'influxdb' => [
+        'url' => env('INFLUXDB_URL', 'http://127.0.0.1:8086'),
+        'token' => env('INFLUXDB_TOKEN'),
+        'org' => env('INFLUXDB_ORG'),
+        'bucket' => env('INFLUXDB_BUCKET', 'csv_export_metrics'),
+        'measurement' => env('INFLUXDB_MEASUREMENT', 'csv_export_task_progress'),
+        'sync_enabled' => (bool) env('INFLUXDB_SYNC_ENABLED', false),
+    ],
+
 ];

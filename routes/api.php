@@ -1,8 +1,9 @@
 <?php
 
-use App\Http\Controllers\Admin\CsvExportController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\CsvExport\CsvExportChannelController;
+use App\Http\Controllers\CsvExport\CsvExportController;
 use App\Http\Controllers\Google\Drive\DriveUploadController;
 use App\Http\Controllers\Google\Oauth\GoogleOAuthController;
 use App\Http\Controllers\Google\Vertex\VertexChatController;
@@ -45,6 +46,14 @@ Route::middleware(['auth:sanctum', 'staff'])->prefix('admin')->group(function ()
         Route::post('/', [CsvExportController::class, 'store']);
         Route::get('{csvExportTask}', [CsvExportController::class, 'show'])->whereNumber('csvExportTask');
         Route::get('{csvExportTask}/download', [CsvExportController::class, 'download'])->whereNumber('csvExportTask');
+    });
+
+    Route::prefix('csv-channels')->group(function () {
+        Route::get('/', [CsvExportChannelController::class, 'index']);
+        Route::post('/', [CsvExportChannelController::class, 'store']);
+        Route::get('{csvExportChannel}', [CsvExportChannelController::class, 'show'])->whereNumber('csvExportChannel');
+        Route::patch('{csvExportChannel}', [CsvExportChannelController::class, 'update'])->whereNumber('csvExportChannel');
+        Route::delete('{csvExportChannel}', [CsvExportChannelController::class, 'destroy'])->whereNumber('csvExportChannel');
     });
 
     Route::prefix('v1')->group(function () {
