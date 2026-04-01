@@ -25,4 +25,12 @@ class ExampleTest extends TestCase
         $response->assertStatus(200)
             ->assertSee('id="app"', false);
     }
+
+    public function test_nested_admin_spa_routes_return_a_successful_response(): void
+    {
+        $response = $this->get('/admin/exports/csv/channels');
+
+        $response->assertStatus(200)
+            ->assertSee('id="app"', false);
+    }
 }

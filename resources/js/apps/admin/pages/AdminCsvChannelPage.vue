@@ -209,9 +209,8 @@
                                 default-first-option
                                 clearable
                                 collapse-tags
-                                collapse-tags-tooltip
                                 no-data-text="輸入後按 Enter 新增限定值"
-                                placeholder="可選：限定假資料只會從這些值中產生"
+                                placeholder="可選：一次輸入一個值並按 Enter，例如 queued、done"
                             />
                         </div>
                     </section>

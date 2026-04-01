@@ -1,5 +1,6 @@
 # PracticeServer
 
+此案大部分皆由 github copilot 完成
 Laravel 12 專案，包含 Sanctum 驗證、Invitation 流程、角色權限管理與 Swagger 文件。
 
 ## 主要功能
@@ -28,7 +29,7 @@ Laravel 12 專案，包含 Sanctum 驗證、Invitation 流程、角色權限管�
 
 ## 版本資訊
 
-- PHP: ^8.2（建議 8.3）
+- PHP: ^8.3（建議 8.3）
 - Laravel Framework: ^12.0
 - PHPUnit: ^11.5
 - Vue: ^3.5
@@ -266,26 +267,59 @@ FIRESTORE_SYNC_ENABLED=true
 
 ### 後端 InfluxDB（時序資料）
 
+本專案目前使用 InfluxDB 3 的原生 line protocol 寫入介面（`/api/v3/write_lp`）。
+INFLUXDB_TOKEN 執行 
+```shell
+influxdb3 create token --admin
+```
+
 `.env` 需設定：
 
 ```dotenv
-INFLUXDB_URL=http://127.0.0.1:8086
-INFLUXDB_TOKEN=your-influxdb-token
-INFLUXDB_ORG=your-org
-INFLUXDB_BUCKET=csv_export_metrics
-INFLUXDB_MEASUREMENT=csv_export_task_progress
+INFLUXDB_URL=http://[influxdb service name]:8181
+INFLUXDB_TOKEN=[token]
+INFLUXDB_DATABASE=[db name]
 INFLUXDB_SYNC_ENABLED=true
 ```
 
 說明：
 
-- `INFLUXDB_SYNC_ENABLED=true` 後，CSV 匯出任務進度會寫入 InfluxDB。
-- 預設 measurement 為 `csv_export_task_progress`。
-- 每個時間點會寫入 `total_rows`、`generated_rows`、`progress_percentage`、`interval_seconds` 等欄位。
+- `INFLUXDB_SYNC_ENABLED=true` 後，已產生的 CSV row 會匯入 InfluxDB。
+- 寫入的 table 名稱來自 channel 設定的 `measurement`，不是固定值。
+- 寫入欄位來自 channel 定義的 tags 與 fields，另外會額外寫入 `row_number`。
+- 匯入時會將 `db`、`precision=second`、`accept_partial=false` 作為 query string 傳送到 `/api/v3/write_lp`。
+
+#### 手動匯入 CSV 任務到 InfluxDB
+
+```bash
+php artisan csv-export:import-influx --limit=50
+```
+
+說明：
+
+- 指令會挑出 `generated_rows > last_influx_imported_row` 的任務。
+- 單次執行預設最多處理 50 個 task，可用 `--limit` 調整。
+- 若 Influx 服務無回應或回傳錯誤 HTTP 狀態，指令會顯示 skip reason 與 task 範例錯誤訊息。
+
+#### 使用 influxdb3 CLI 讀取資料
+
+資料查詢
+```bash
+influxdb3 query \
+  --database [INFLUXDB_DATABASE] 
+  --token [INFLUXDB_TOKEN]
+   "SELECT * FROM [table name] WHERE name = '[tag]'"
+```
+
+說明：
+- v3 查詢使用 SQL 與 database/table 模型。
+- line protocol 中的 measurement 會對應成 table 名稱。
+- tag 與 field 都會成為可查詢欄位，但實際型別以 InfluxDB 3 建表後的 schema 為準。
+- 若不確定 table 名稱，先用 `SHOW TABLES`，再查你在 channel 裡設定的 measurement。
 
 ### 前端 Firebase Realtime Listener
 
-Vue 端僅能透過 `VITE_` 前綴讀取環境變數（`import.meta.env`）。
+Vue 端僅透過 `VITE_` 前綴讀取環境變數（`import.meta.env`）。
 
 `.env` 需設定：
 

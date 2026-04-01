@@ -79,10 +79,6 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
-const navigate = (target) => {
-    router.push(target);
-};
-
 const guestNavbarActions = computed(() => {
     return buildGuestNavbarActions(t);
 });
@@ -105,6 +101,10 @@ const pageBreadcrumb = computed(() => {
     const breadcrumbKeys = Array.isArray(route.meta?.breadcrumbKeys) ? route.meta.breadcrumbKeys : [];
 
     return breadcrumbKeys.map((key) => t(key)).join(' / ');
+});
+
+const routeRequiresAuth = computed(() => {
+    return Boolean(route.meta?.requiresAuth);
 });
 
 const {
@@ -174,17 +174,45 @@ const openInviteDialog = () => {
     inviteDialogVisible.value = true;
 };
 
-const goDrivePage = () => {
-    router.push('/admin/google/drive');
+const canAccessAdminTarget = async (target) => {
+    const targetRoute = router.resolve(target);
+    const requiresAuth = Boolean(targetRoute.meta?.requiresAuth);
+
+    if (!requiresAuth) {
+        return true;
+    }
+
+    if (!isAuthenticated.value) {
+        await restoreSession();
+    }
+
+    if (!isAuthenticated.value) {
+        loginDialogVisible.value = true;
+        return false;
+    }
+
+    if (!isStaff.value) {
+        ElMessage.error('你沒有後台權限，將導回首頁');
+        window.location.replace('/');
+        return false;
+    }
+
+    return true;
 };
 
-const goCsvExportPage = () => {
-    router.push('/admin/exports/csv');
+const navigate = async (target) => {
+    if (!await canAccessAdminTarget(target)) {
+        return;
+    }
+
+    await router.push(target);
 };
 
-const goCsvChannelPage = () => {
-    router.push('/admin/exports/csv/channels');
-};
+const goDrivePage = async () => navigate('/admin/google/drive');
+
+const goCsvExportPage = async () => navigate('/admin/exports/csv');
+
+const goCsvChannelPage = async () => navigate('/admin/exports/csv/channels');
 
 const submitProfile = async (payload) => {
     try {
@@ -247,16 +275,39 @@ const handleLoggedIn = async (token) => {
 const submitLogout = async () => {
     await logout();
     ElMessage.success('已登出');
+    window.location.replace('/admin');
 };
 
 onMounted(async () => {
     await restoreSession();
 
+    if (routeRequiresAuth.value && !isAuthenticated.value) {
+        window.location.replace('/admin');
+        return;
+    }
+
     if (isAuthenticated.value && !isStaff.value) {
         ElMessage.error('你沒有後台權限，將導回首頁');
-        window.location.href = '/';
+        window.location.replace('/');
     }
 });
+
+watch(
+    () => route.fullPath,
+    async () => {
+        if (!routeRequiresAuth.value) {
+            return;
+        }
+
+        if (!isAuthenticated.value) {
+            await restoreSession();
+        }
+
+        if (!isAuthenticated.value) {
+            window.location.replace('/admin');
+        }
+    }
+);
 
 watchEffect(() => {
     document.title = `${pageTitle.value} | PracticeServer Admin`;

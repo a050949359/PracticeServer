@@ -10,6 +10,7 @@ const routes = [
         name: 'admin.home',
         component: AdminHomePage,
         meta: {
+            requiresAuth: false,
             titleKey: 'pages.admin.home.title',
             breadcrumbKeys: ['pages.admin.home.breadcrumb'],
         },
@@ -19,6 +20,7 @@ const routes = [
         name: 'admin.google.drive',
         component: AdminGoogleDrivePage,
         meta: {
+            requiresAuth: true,
             titleKey: 'pages.admin.drive.title',
             breadcrumbKeys: ['pages.admin.home.breadcrumb', 'pages.admin.drive.breadcrumb'],
         },
@@ -28,6 +30,7 @@ const routes = [
         name: 'admin.exports.csv',
         component: AdminCsvExportPage,
         meta: {
+            requiresAuth: true,
             titleKey: 'pages.admin.csvExport.title',
             breadcrumbKeys: ['pages.admin.home.breadcrumb', 'pages.admin.csvExport.breadcrumb'],
         },
@@ -37,6 +40,7 @@ const routes = [
         name: 'admin.exports.csvChannels',
         component: AdminCsvChannelPage,
         meta: {
+            requiresAuth: true,
             titleKey: 'pages.admin.csvChannels.title',
             breadcrumbKeys: ['pages.admin.home.breadcrumb', 'pages.admin.csvExport.breadcrumb', 'pages.admin.csvChannels.breadcrumb'],
         },

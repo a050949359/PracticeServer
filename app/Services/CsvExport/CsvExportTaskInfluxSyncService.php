@@ -4,6 +4,7 @@ namespace App\Services\CsvExport;
 
 use App\Models\CsvExportChannel;
 use App\Models\CsvExportTask;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -12,10 +13,38 @@ use Throwable;
 
 class CsvExportTaskInfluxSyncService
 {
+    private const ERROR_SAMPLE_LIMIT = 5;
+
     public function importPendingTasks(int $limit = 50): int
     {
+        $report = $this->importPendingTasksReport($limit);
+
+        return (int) $report['imported_rows'];
+    }
+
+    /**
+     * @return array{sync_enabled: bool, limit: int, tasks_selected: int, tasks_processed: int, tasks_imported: int, tasks_skipped: int, imported_rows: int, skip_reasons: array<string, int>, error_samples: list<array{task_id: int, reason: string, detail: string}>}
+     */
+    public function importPendingTasksReport(int $limit = 50): array
+    {
+        $normalizedLimit = max(1, $limit);
+
         if (! $this->isSyncEnabled()) {
-            return 0;
+            Log::info('Influx import skipped because sync is disabled.');
+
+            return [
+                'sync_enabled' => false,
+                'limit' => $normalizedLimit,
+                'tasks_selected' => 0,
+                'tasks_processed' => 0,
+                'tasks_imported' => 0,
+                'tasks_skipped' => 0,
+                'imported_rows' => 0,
+                'skip_reasons' => [
+                    'sync_disabled' => 1,
+                ],
+                'error_samples' => [],
+            ];
         }
 
         $tasks = CsvExportTask::query()
@@ -23,32 +52,84 @@ class CsvExportTaskInfluxSyncService
             ->whereIn('status', [CsvExportTask::STATUS_PROCESSING, CsvExportTask::STATUS_COMPLETED])
             ->whereColumn('generated_rows', '>', 'last_influx_imported_row')
             ->orderBy('id')
-            ->limit(max(1, $limit))
+            ->limit($normalizedLimit)
             ->get();
 
         $importedRows = 0;
+        $tasksProcessed = 0;
+        $tasksImported = 0;
+        $tasksSkipped = 0;
+        $skipReasons = [];
+        $errorSamples = [];
+
         foreach ($tasks as $task) {
             if (! $task instanceof CsvExportTask) {
                 continue;
             }
 
-            $importedRows += $this->importTask($task);
+            $tasksProcessed++;
+            $result = $this->importTaskWithReason($task);
+            $importedRows += $result['imported_rows'];
+
+            if ($result['imported_rows'] > 0) {
+                $tasksImported++;
+            } else {
+                $tasksSkipped++;
+                $reason = $result['reason'];
+                $skipReasons[$reason] = ($skipReasons[$reason] ?? 0) + 1;
+
+                if ($result['detail'] !== '' && count($errorSamples) < self::ERROR_SAMPLE_LIMIT) {
+                    $errorSamples[] = [
+                        'task_id' => $task->id,
+                        'reason' => $reason,
+                        'detail' => $result['detail'],
+                    ];
+                }
+            }
         }
 
-        return $importedRows;
+        return [
+            'sync_enabled' => true,
+            'limit' => $normalizedLimit,
+            'tasks_selected' => $tasks->count(),
+            'tasks_processed' => $tasksProcessed,
+            'tasks_imported' => $tasksImported,
+            'tasks_skipped' => $tasksSkipped,
+            'imported_rows' => $importedRows,
+            'skip_reasons' => $skipReasons,
+            'error_samples' => $errorSamples,
+        ];
     }
 
     public function importTask(CsvExportTask $task): int
     {
+        $result = $this->importTaskWithReason($task);
+
+        return $result['imported_rows'];
+    }
+
+    /**
+     * @return array{imported_rows: int, reason: string, detail: string}
+     */
+    private function importTaskWithReason(CsvExportTask $task): array
+    {
         if (! $this->isSyncEnabled()) {
-            return 0;
+            return [
+                'imported_rows' => 0,
+                'reason' => 'sync_disabled',
+                'detail' => '',
+            ];
         }
 
         $task->loadMissing(['template', 'channel.tags', 'channel.fields']);
         $rowsToImport = max(0, (int) $task->generated_rows - (int) $task->last_influx_imported_row);
 
         if ($rowsToImport === 0) {
-            return 0;
+            return [
+                'imported_rows' => 0,
+                'reason' => 'no_pending_rows',
+                'detail' => '',
+            ];
         }
 
         $disk = Storage::disk($task->disk);
@@ -58,56 +139,120 @@ class CsvExportTaskInfluxSyncService
                 'file_path' => $task->file_path,
             ]);
 
-            return 0;
+            return [
+                'imported_rows' => 0,
+                'reason' => 'file_not_found',
+                'detail' => 'CSV file does not exist: '.$task->file_path,
+            ];
         }
 
         try {
             $token = $this->influxToken();
-            $org = $this->influxOrg();
-            $bucket = $this->influxBucket();
+            $database = $this->influxDatabase();
             $baseUrl = rtrim((string) config('services.influxdb.url', 'http://influxdb:8086'), '/');
             $channel = $this->resolveChannel($task);
 
             if (! $channel instanceof CsvExportChannel) {
-                return 0;
+                return [
+                    'imported_rows' => 0,
+                    'reason' => 'channel_not_resolved',
+                    'detail' => 'Unable to resolve active channel from task channel_id/file_name.',
+                ];
             }
 
             $lineProtocol = $this->taskCsvLineProtocol($task, $channel, $disk->path($task->file_path));
 
             if ($lineProtocol === []) {
-                return 0;
+                return [
+                    'imported_rows' => 0,
+                    'reason' => 'no_valid_line_protocol',
+                    'detail' => 'CSV rows did not produce valid line protocol for InfluxDB.',
+                ];
             }
 
             $body = implode("\n", $lineProtocol);
 
             $response = Http::withHeaders([
-                'Authorization' => 'Token '.$token,
+                'Authorization' => 'Bearer '.$token,
                 'Accept' => 'application/json',
                 'Content-Type' => 'text/plain; charset=utf-8',
-            ])->withBody($body, 'text/plain; charset=utf-8')
-                ->post($baseUrl.'/api/v2/write', [
-                    'org' => $org,
-                    'bucket' => $bucket,
-                    'precision' => 's',
-                ]);
+            ])->connectTimeout(3)
+                ->timeout(10)
+                ->withBody($body, 'text/plain; charset=utf-8')
+                ->withOptions([
+                    'query' => [
+                        'db' => $database,
+                        'precision' => 'second',
+                        'accept_partial' => 'false',
+                    ],
+                ])
+                ->post($baseUrl.'/api/v3/write_lp');
 
             if ($response->failed()) {
-                throw new RuntimeException('InfluxDB write failed: '.$response->status().' '.$response->body());
+                Log::warning('InfluxDB write returned failed HTTP status.', [
+                    'task_id' => $task->id,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                return [
+                    'imported_rows' => 0,
+                    'reason' => 'http_failed_response',
+                    'detail' => sprintf(
+                        'HTTP %d: %s',
+                        $response->status(),
+                        $this->truncateDetail($response->body())
+                    ),
+                ];
             }
 
             $task->forceFill([
                 'last_influx_imported_row' => (int) $task->generated_rows,
             ])->save();
 
-            return count($lineProtocol);
+            return [
+                'imported_rows' => count($lineProtocol),
+                'reason' => 'imported',
+                'detail' => '',
+            ];
+        } catch (ConnectionException $connectionException) {
+            Log::error('InfluxDB service did not respond.', [
+                'task_id' => $task->id,
+                'error' => $connectionException->getMessage(),
+            ]);
+
+            return [
+                'imported_rows' => 0,
+                'reason' => 'service_unreachable',
+                'detail' => $this->truncateDetail($connectionException->getMessage()),
+            ];
         } catch (Throwable $throwable) {
             Log::warning('Failed to sync CSV export task to InfluxDB.', [
                 'task_id' => $task->id,
                 'error' => $throwable->getMessage(),
             ]);
 
-            return 0;
+            return [
+                'imported_rows' => 0,
+                'reason' => 'write_failed',
+                'detail' => $this->truncateDetail($throwable->getMessage()),
+            ];
         }
+    }
+
+    private function truncateDetail(string $detail, int $maxLength = 240): string
+    {
+        $normalized = trim(preg_replace('/\s+/', ' ', $detail) ?? '');
+
+        if ($normalized === '') {
+            return '(empty response body)';
+        }
+
+        if (mb_strlen($normalized) <= $maxLength) {
+            return $normalized;
+        }
+
+        return mb_substr($normalized, 0, $maxLength - 3).'...';
     }
 
     private function isSyncEnabled(): bool
@@ -288,24 +433,14 @@ class CsvExportTaskInfluxSyncService
         return $token;
     }
 
-    private function influxOrg(): string
+    private function influxDatabase(): string
     {
-        $org = trim((string) config('services.influxdb.org', ''));
-        if ($org === '') {
-            throw new RuntimeException('INFLUXDB_ORG is required.');
+        $database = trim((string) config('services.influxdb.database', ''));
+        if ($database === '') {
+            throw new RuntimeException('INFLUXDB_DATABASE is required.');
         }
 
-        return $org;
-    }
-
-    private function influxBucket(): string
-    {
-        $bucket = trim((string) config('services.influxdb.bucket', 'csv_export_metrics'));
-        if ($bucket === '') {
-            throw new RuntimeException('INFLUXDB_BUCKET is required.');
-        }
-
-        return $bucket;
+        return $database;
     }
 
     private function resolveTimestamp(CsvExportTask $task): int
