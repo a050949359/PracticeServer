@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\InvitationController;
 use App\Http\Controllers\CsvExport\CsvExportChannelController;
 use App\Http\Controllers\CsvExport\CsvExportController;
+use App\Http\Controllers\Google\CloudStorage\CloudStorageController;
 use App\Http\Controllers\Google\Drive\DriveUploadController;
 use App\Http\Controllers\Google\Oauth\GoogleOAuthController;
 use App\Http\Controllers\Google\Vertex\VertexChatController;
@@ -95,4 +96,11 @@ Route::middleware(['auth:sanctum', 'staff'])->prefix('google/drive/oauth')->grou
     Route::get('authorize-url', [GoogleOAuthController::class, 'authorizeUrl']);
     Route::get('status', [GoogleOAuthController::class, 'status']);
     Route::delete('disconnect', [GoogleOAuthController::class, 'disconnect']);
+});
+
+Route::middleware(['auth:sanctum', 'staff'])->prefix('cloud/storage')->group(function () {
+    Route::post('upload', [CloudStorageController::class, 'store']);
+    Route::get('files', [CloudStorageController::class, 'index']);
+    Route::get('download', [CloudStorageController::class, 'download']);
+    Route::delete('file', [CloudStorageController::class, 'destroy']);
 });

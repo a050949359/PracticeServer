@@ -66,4 +66,9 @@ return [
         'sync_enabled' => (bool) env('INFLUXDB_SYNC_ENABLED', false),
     ],
 
+    'cloud_storage' => [
+        'disk' => env('CLOUD_STORAGE_DISK', 's3'),
+        'default_visibility' => env('CLOUD_STORAGE_DEFAULT_VISIBILITY', 'private'),
+    ],
+
 ];
