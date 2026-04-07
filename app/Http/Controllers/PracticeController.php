@@ -27,4 +27,11 @@ class PracticeController extends Controller
             'sum' => $validated['a'] + $validated['b'],
         ]);
     }
+
+    public function multiplyValues(PracticeRequest $request) :JsonResponse
+    {
+     $validated = $request->validated();
+        $result=$validated['a'] * $validated['b'];
+        return response()->json(['a'=>$validated['a'],'b'=>$validated['b'],'product' =>$result]);
+    }
 }
