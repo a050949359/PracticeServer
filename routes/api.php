@@ -70,6 +70,7 @@ Route::middleware(['auth:sanctum', 'staff'])->prefix('admin')->group(function ()
 Route::prefix('practice')->group(function () {
     Route::post('echo', [PracticeController::class, 'echoText']);
     Route::post('sum', [PracticeController::class, 'sumValues']);
+    Route::post('multiply', [PracticeController::class, 'multiplyValues']);
 });
 
 Route::prefix('google/vertex')->group(function () {
