@@ -32,6 +32,10 @@ class PracticeRequest extends FormRequest
                 'a' => ['required', 'numeric'],
                 'b' => ['required', 'numeric'],
             ],
+            'multiplyValues' => [
+                'a' => ['required', 'numeric'],
+                'b' => ['required', 'numeric'],
+            ],
             default => [],
         };
     }
